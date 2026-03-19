@@ -7,6 +7,7 @@ import {
   type PitchingStats,
   type NewsArticle,
   type SocialPost,
+  type Ranking,
 } from "@/lib/supabase";
 
 export function useGames() {
@@ -50,5 +51,13 @@ export function useSocialPosts() {
     queryKey: ["social_posts"],
     queryFn: () =>
       supabaseQuery<SocialPost>("social_posts", "order=posted_date.desc"),
+  });
+}
+
+export function useRankings() {
+  return useQuery<Ranking[]>({
+    queryKey: ["rankings"],
+    queryFn: () =>
+      supabaseQuery<Ranking>("rankings", "order=rpi_rank.asc.nullslast"),
   });
 }

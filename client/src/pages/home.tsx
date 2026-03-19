@@ -1,4 +1,6 @@
-import { useGames, useNewsArticles, useSocialPosts } from "@/hooks/use-supabase";
+import { useGames, useNewsArticles, useSocialPosts, useRankings } from "@/hooks/use-supabase";
+import { useWeather } from "@/hooks/use-weather";
+import WeatherBadge from "@/components/WeatherBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,8 +17,15 @@ import {
   Tv,
 } from "lucide-react";
 import { Link } from "wouter";
+import type { Game, Ranking } from "@/lib/supabase";
 
-function HeroBanner({ record }: { record: { wins: number; losses: number; confWins: number; confLosses: number } }) {
+function HeroBanner({
+  record,
+  iuRanking,
+}: {
+  record: { wins: number; losses: number; confWins: number; confLosses: number };
+  iuRanking: Ranking | undefined;
+}) {
   return (
     <div
       className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#990000] via-[#780000] to-[#1a0000] text-white p-6 md:p-8"
@@ -52,6 +61,13 @@ function HeroBanner({ record }: { record: { wins: number; losses: number; confWi
             {record.confWins}-{record.confLosses} B1G
           </Badge>
         </div>
+        {iuRanking && (iuRanking.rpi_rank || iuRanking.elo_rank) && (
+          <p className="text-white/70 text-xs mt-1.5 tabular-nums" data-testid="hero-rankings">
+            {iuRanking.rpi_rank ? `RPI #${iuRanking.rpi_rank}` : ""}
+            {iuRanking.rpi_rank && iuRanking.elo_rank ? " · " : ""}
+            {iuRanking.elo_rank ? `ELO #${iuRanking.elo_rank}` : ""}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -79,11 +95,44 @@ function CountdownTimer({ targetDate }: { targetDate: Date }) {
   );
 }
 
-function NextGameCard({ games }: { games: any[] }) {
+function NextGameWeather({ game }: { game: Game }) {
+  const { temp, precipProbability, windSpeed, weatherCode, isLoading } =
+    useWeather(game.venue_lat, game.venue_lon, game.date);
+
+  if (isLoading || temp == null) return null;
+
+  return (
+    <div className="pt-3 mt-3 border-t border-border">
+      <WeatherBadge
+        temp={temp}
+        precipProbability={precipProbability}
+        windSpeed={windSpeed}
+        weatherCode={weatherCode}
+        compact={true}
+      />
+    </div>
+  );
+}
+
+function NextGameCard({
+  games,
+  rankings,
+}: {
+  games: Game[];
+  rankings: Ranking[];
+}) {
   const nextGame = games.find((g) => g.status === "upcoming");
   if (!nextGame) return null;
 
   const gameDate = new Date(nextGame.date);
+
+  // Look up opponent in rankings for their record
+  const opponentRanking = rankings.find(
+    (r) =>
+      r.team_name.toLowerCase() === nextGame.opponent.toLowerCase() ||
+      nextGame.opponent.toLowerCase().includes(r.team_name.toLowerCase()) ||
+      r.team_name.toLowerCase().includes(nextGame.opponent.toLowerCase())
+  );
 
   return (
     <Card className="p-5 border border-card-border" data-testid="next-game-card">
@@ -116,6 +165,11 @@ function NextGameCard({ games }: { games: any[] }) {
           <p className="font-bold text-base truncate" data-testid="next-game-opponent">
             {nextGame.location === "away" ? "at " : "vs "}
             {nextGame.opponent}
+            {opponentRanking?.record && (
+              <span className="text-muted-foreground font-normal text-sm ml-1">
+                ({opponentRanking.record})
+              </span>
+            )}
           </p>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
             <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
@@ -134,6 +188,10 @@ function NextGameCard({ games }: { games: any[] }) {
           )}
         </div>
       </div>
+      {/* Compact weather below existing content */}
+      {nextGame.venue_lat != null && nextGame.venue_lon != null && (
+        <NextGameWeather game={nextGame} />
+      )}
     </Card>
   );
 }
@@ -304,6 +362,7 @@ export default function HomePage() {
   const { data: games, isLoading: gamesLoading } = useGames();
   const { data: articles, isLoading: newsLoading } = useNewsArticles();
   const { data: posts, isLoading: socialLoading } = useSocialPosts();
+  const { data: rankings } = useRankings();
 
   const isLoading = gamesLoading || newsLoading || socialLoading;
 
@@ -316,12 +375,19 @@ export default function HomePage() {
       }
     : { wins: 0, losses: 0, confWins: 0, confLosses: 0 };
 
+  // Find IU's ranking
+  const iuRanking = rankings?.find(
+    (r) => r.team_name.toLowerCase() === "indiana"
+  );
+
+  const rankingsData = rankings ?? [];
+
   if (isLoading) return <HomeSkeletons />;
 
   return (
     <div className="space-y-6" data-testid="home-page">
-      <HeroBanner record={record} />
-      {games && <NextGameCard games={games} />}
+      <HeroBanner record={record} iuRanking={iuRanking} />
+      {games && <NextGameCard games={games} rankings={rankingsData} />}
       <QuickLinks />
       {articles && <RecentNews articles={articles} />}
       {posts && <SocialBuzz posts={posts} />}

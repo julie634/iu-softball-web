@@ -38,6 +38,20 @@ export interface Game {
   tournament_name: string | null;
   notes: string | null;
   innings_played: number | null;
+  venue_lat: number | null;
+  venue_lon: number | null;
+  opponent_record: string | null;
+}
+
+export interface Ranking {
+  id: string;
+  team_name: string;
+  rpi_rank: number | null;
+  elo_rank: number | null;
+  elo_value: number | null;
+  record: string | null;
+  conference: string | null;
+  last_updated: string;
 }
 
 export interface Player {
