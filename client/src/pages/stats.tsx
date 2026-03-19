@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { ArrowUpDown, TrendingUp } from "lucide-react";
 import { Link } from "wouter";
+import { track } from "@vercel/analytics";
 import type { Player, BattingStats, PitchingStats } from "@/lib/supabase";
 
 function fmt(val: number | null, decimals = 3): string {
@@ -299,8 +300,8 @@ export default function StatsPage() {
 
       <Tabs defaultValue="batting" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="batting" data-testid="tab-batting">Batting</TabsTrigger>
-          <TabsTrigger value="pitching" data-testid="tab-pitching">Pitching</TabsTrigger>
+          <TabsTrigger value="batting" onClick={() => track('Stats Tab', { tab: 'Batting' })} data-testid="tab-batting">Batting</TabsTrigger>
+          <TabsTrigger value="pitching" onClick={() => track('Stats Tab', { tab: 'Pitching' })} data-testid="tab-pitching">Pitching</TabsTrigger>
         </TabsList>
         <TabsContent value="batting" className="mt-3">
           <BattingTable players={players} stats={battingStats} />

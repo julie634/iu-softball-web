@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { ExternalLink, Heart, MessageCircle, Share2 } from "lucide-react";
+import { track } from "@vercel/analytics";
 import type { NewsArticle, SocialPost } from "@/lib/supabase";
 
 function NewsCard({ article }: { article: NewsArticle }) {
@@ -14,6 +15,7 @@ function NewsCard({ article }: { article: NewsArticle }) {
       target="_blank"
       rel="noopener noreferrer"
       className="block"
+      onClick={() => track('News Click', { title: article.title, source: article.source || 'unknown' })}
       data-testid={`news-article-${article.id}`}
     >
       <Card className="overflow-hidden border border-card-border hover-elevate transition-colors">
@@ -65,6 +67,7 @@ function SocialCard({ post }: { post: SocialPost }) {
       target="_blank"
       rel="noopener noreferrer"
       className="block"
+      onClick={() => track('Social Click', { author: post.author || 'unknown', platform: post.platform || 'unknown' })}
       data-testid={`social-post-${post.id}`}
     >
       <Card className="p-4 border border-card-border hover-elevate transition-colors">
@@ -157,8 +160,8 @@ export default function NewsPage() {
 
       <Tabs defaultValue="news" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="news" data-testid="tab-news">News</TabsTrigger>
-          <TabsTrigger value="social" data-testid="tab-social">Social</TabsTrigger>
+          <TabsTrigger value="news" onClick={() => track('News Tab', { tab: 'News' })} data-testid="tab-news">News</TabsTrigger>
+          <TabsTrigger value="social" onClick={() => track('News Tab', { tab: 'Social' })} data-testid="tab-social">Social</TabsTrigger>
         </TabsList>
         <TabsContent value="news" className="mt-3">
           <div className="space-y-3">

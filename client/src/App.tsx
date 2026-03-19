@@ -12,6 +12,7 @@ import SchedulePage from "@/pages/schedule";
 import StatsPage from "@/pages/stats";
 import RosterPage from "@/pages/roster";
 import NewsPage from "@/pages/news";
+import { track } from "@vercel/analytics";
 import {
   Home,
   Calendar,
@@ -34,7 +35,7 @@ function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
   return (
     <button
-      onClick={toggleTheme}
+      onClick={() => { track('Theme Toggle', { to: theme === 'dark' ? 'light' : 'dark' }); toggleTheme(); }}
       className="p-2 rounded-lg hover:bg-muted transition-colors"
       aria-label="Toggle theme"
       data-testid="theme-toggle"
@@ -66,6 +67,7 @@ function BottomNav() {
             <Link
               key={path}
               href={path}
+              onClick={() => track('Tab Click', { tab: label, source: 'bottom_nav' })}
               className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[56px] ${
                 isActive
                   ? "text-primary"
@@ -126,6 +128,7 @@ function DesktopSidebar() {
             <Link
               key={path}
               href={path}
+              onClick={() => track('Tab Click', { tab: label, source: 'sidebar' })}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-primary text-primary-foreground"

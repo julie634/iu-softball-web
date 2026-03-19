@@ -4,13 +4,14 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link, useParams } from "wouter";
 import { ArrowLeft, MapPin, Ruler, User } from "lucide-react";
+import { track } from "@vercel/analytics";
 import type { Player, BattingStats, PitchingStats } from "@/lib/supabase";
 
 function PlayerCard({ player }: { player: Player }) {
   const isPitcher = player.position?.toLowerCase().includes("p") && !player.position?.toLowerCase().includes("dp");
 
   return (
-    <Link href={`/roster/${player.id}`} data-testid={`player-card-${player.id}`}>
+    <Link href={`/roster/${player.id}`} onClick={() => track('Player Click', { player: `${player.first_name} ${player.last_name}`, number: player.number })} data-testid={`player-card-${player.id}`}>
       <Card className="p-4 border border-card-border hover-elevate cursor-pointer transition-colors">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">

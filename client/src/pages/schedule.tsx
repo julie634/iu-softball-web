@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ChevronDown, ChevronUp, ExternalLink, MapPin, Tv, Trophy } from "lucide-react";
 import { useState } from "react";
+import { track } from "@vercel/analytics";
 import type { Game } from "@/lib/supabase";
 
 function GameRow({ game }: { game: Game }) {
@@ -112,7 +113,7 @@ function GameRow({ game }: { game: Game }) {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:text-primary/80 transition-colors"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.stopPropagation(); track('Box Score Click', { opponent: game.opponent, game_id: game.id }); }}
                       data-testid={`box-score-link-${game.id}`}
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
@@ -196,7 +197,7 @@ export default function SchedulePage() {
       {completedGames.length > 0 && (
         <div>
           <button
-            onClick={() => setShowCompleted(!showCompleted)}
+            onClick={() => { track('Toggle Completed Games', { action: showCompleted ? 'collapse' : 'expand' }); setShowCompleted(!showCompleted); }}
             className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 hover:text-foreground transition-colors w-full"
             data-testid="toggle-completed"
           >
