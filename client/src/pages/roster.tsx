@@ -3,9 +3,107 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link, useParams } from "wouter";
-import { ArrowLeft, MapPin, Ruler, User } from "lucide-react";
+import { ArrowLeft, MapPin, Ruler, User, Mail, Phone } from "lucide-react";
 import { track } from "@vercel/analytics";
 import type { Player, BattingStats, PitchingStats } from "@/lib/supabase";
+
+interface Coach {
+  name: string;
+  title: string;
+  email?: string;
+  phone?: string;
+  bio?: string;
+  imageUrl?: string;
+}
+
+const COACHING_STAFF: Coach[] = [
+  {
+    name: "Shonda Stanton",
+    title: "Head Coach",
+    email: "softball@iu.edu",
+    phone: "(812) 855-9518",
+    bio: "9th season at IU. Led program to three straight NCAA Tournaments (2023-25). Career record: 244-159 at Indiana.",
+    imageUrl: "https://iuhoosiers.com/images/2023/6/14/Stanton_Shonda.jpg",
+  },
+  {
+    name: "Chanda Bell",
+    title: "Associate Head Coach",
+    email: "bell1@iu.edu",
+    phone: "(812) 855-9738",
+    bio: "Has been with Coach Stanton since their time at Marshall. 2017 C-USA Coaching Staff of the Year.",
+    imageUrl: "https://iuhoosiers.com/images/2023/6/14/Bell_Chanda.jpg",
+  },
+  {
+    name: "Kendra Kirkhoff",
+    title: "Assistant Coach",
+    email: "kennkirk@iu.edu",
+    imageUrl: "https://iuhoosiers.com/images/2024/8/27/Kirkhoff_Kendra.jpg",
+  },
+  {
+    name: "Cassie Hendrix",
+    title: "Director of Operations",
+    email: "hendrix@iu.edu",
+    phone: "(812) 855-5462",
+    imageUrl: "https://iuhoosiers.com/images/2024/8/12/Hendrix_Cassie.jpg",
+  },
+];
+
+function CoachCard({ coach }: { coach: Coach }) {
+  return (
+    <Card className="p-4 border border-card-border" data-testid={`coach-card-${coach.name.toLowerCase().replace(/\s+/g, "-")}`}>
+      <div className="flex items-start gap-3">
+        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+          {coach.imageUrl ? (
+            <img
+              src={coach.imageUrl}
+              alt={coach.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+                (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-lg font-bold text-primary">${coach.name.charAt(0)}</span>`;
+              }}
+            />
+          ) : (
+            <span className="text-lg font-bold text-primary">{coach.name.charAt(0)}</span>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-sm">{coach.name}</p>
+          <Badge
+            variant="secondary"
+            className="text-[10px] bg-primary/10 text-primary mt-0.5"
+          >
+            {coach.title}
+          </Badge>
+          {coach.bio && (
+            <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{coach.bio}</p>
+          )}
+          <div className="flex items-center gap-3 mt-2">
+            {coach.email && (
+              <a
+                href={`mailto:${coach.email}`}
+                className="inline-flex items-center gap-1 text-xs text-primary/80 hover:text-primary transition-colors"
+                data-testid={`coach-email-${coach.name.toLowerCase().replace(/\s+/g, "-")}`}
+              >
+                <Mail className="w-3 h-3" />
+                {coach.email}
+              </a>
+            )}
+            {coach.phone && (
+              <a
+                href={`tel:${coach.phone.replace(/[^\d+]/g, "")}`}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Phone className="w-3 h-3" />
+                {coach.phone}
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 function PlayerCard({ player }: { player: Player }) {
   const isPitcher = player.position?.toLowerCase().includes("p") && !player.position?.toLowerCase().includes("dp");
@@ -224,15 +322,34 @@ export default function RosterPage() {
 
   // Roster list
   return (
-    <div className="space-y-3" data-testid="roster-page">
+    <div className="space-y-6" data-testid="roster-page">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold">Roster</h1>
         <Badge variant="secondary" className="text-xs">{players.length} Players</Badge>
       </div>
-      <div className="space-y-2">
-        {players.map((player) => (
-          <PlayerCard key={player.id} player={player} />
-        ))}
+
+      {/* Coaching Staff */}
+      <div>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+          Coaching Staff
+        </h2>
+        <div className="space-y-2">
+          {COACHING_STAFF.map((coach) => (
+            <CoachCard key={coach.name} coach={coach} />
+          ))}
+        </div>
+      </div>
+
+      {/* Players */}
+      <div>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+          Players
+        </h2>
+        <div className="space-y-2">
+          {players.map((player) => (
+            <PlayerCard key={player.id} player={player} />
+          ))}
+        </div>
       </div>
     </div>
   );
