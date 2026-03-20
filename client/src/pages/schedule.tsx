@@ -17,7 +17,7 @@ function VenueLink({ game, children }: { game: Game; children: React.ReactNode }
         href={`https://www.google.com/maps/search/?api=1&query=${game.venue_lat},${game.venue_lon}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="hover:underline hover:text-primary transition-colors"
+        className="text-primary/80 underline decoration-primary/30 underline-offset-2 hover:text-primary hover:decoration-primary/60 transition-colors"
         onClick={(e) => e.stopPropagation()}
         data-testid={`venue-link-${game.id}`}
       >

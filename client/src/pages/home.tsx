@@ -178,7 +178,7 @@ function NextGameCard({
                 href={`https://www.google.com/maps/search/?api=1&query=${nextGame.venue_lat},${nextGame.venue_lon}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="truncate hover:underline hover:text-primary transition-colors"
+                className="truncate text-primary/80 underline decoration-primary/30 underline-offset-2 hover:text-primary hover:decoration-primary/60 transition-colors"
                 onClick={(e) => e.stopPropagation()}
                 data-testid="next-game-venue-link"
               >
