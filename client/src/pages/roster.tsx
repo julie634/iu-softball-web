@@ -2,6 +2,7 @@ import { usePlayers, useBattingStats, usePitchingStats } from "@/hooks/use-supab
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link, useParams } from "wouter";
 import { ArrowLeft, MapPin, Ruler, User, Mail, Phone } from "lucide-react";
 import { track } from "@vercel/analytics";
@@ -322,35 +323,32 @@ export default function RosterPage() {
 
   // Roster list
   return (
-    <div className="space-y-6" data-testid="roster-page">
+    <div className="space-y-4" data-testid="roster-page">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold">Roster</h1>
         <Badge variant="secondary" className="text-xs">{players.length} Players</Badge>
       </div>
 
-      {/* Coaching Staff */}
-      <div>
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-          Coaching Staff
-        </h2>
-        <div className="space-y-2">
-          {COACHING_STAFF.map((coach) => (
-            <CoachCard key={coach.name} coach={coach} />
-          ))}
-        </div>
-      </div>
-
-      {/* Players */}
-      <div>
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-          Players
-        </h2>
-        <div className="space-y-2">
-          {players.map((player) => (
-            <PlayerCard key={player.id} player={player} />
-          ))}
-        </div>
-      </div>
+      <Tabs defaultValue="players" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="players" onClick={() => track('Roster Tab', { tab: 'Players' })} data-testid="tab-players">Players</TabsTrigger>
+          <TabsTrigger value="staff" onClick={() => track('Roster Tab', { tab: 'Staff' })} data-testid="tab-staff">Coaching Staff</TabsTrigger>
+        </TabsList>
+        <TabsContent value="players" className="mt-3">
+          <div className="space-y-2">
+            {players.map((player) => (
+              <PlayerCard key={player.id} player={player} />
+            ))}
+          </div>
+        </TabsContent>
+        <TabsContent value="staff" className="mt-3">
+          <div className="space-y-2">
+            {COACHING_STAFF.map((coach) => (
+              <CoachCard key={coach.name} coach={coach} />
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
