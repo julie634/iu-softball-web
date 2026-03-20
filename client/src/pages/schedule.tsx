@@ -10,6 +10,24 @@ import { useState } from "react";
 import { track } from "@vercel/analytics";
 import type { Game, Ranking } from "@/lib/supabase";
 
+function VenueLink({ game, children }: { game: Game; children: React.ReactNode }) {
+  if (game.venue_lat != null && game.venue_lon != null) {
+    return (
+      <a
+        href={`https://www.google.com/maps/search/?api=1&query=${game.venue_lat},${game.venue_lon}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="hover:underline hover:text-primary transition-colors"
+        onClick={(e) => e.stopPropagation()}
+        data-testid={`venue-link-${game.id}`}
+      >
+        {children}
+      </a>
+    );
+  }
+  return <span>{children}</span>;
+}
+
 function GameDetailWeather({ game }: { game: Game }) {
   const { temp, precipProbability, windSpeed, weatherCode, isLoading } =
     useWeather(game.venue_lat, game.venue_lon, game.date);
@@ -55,10 +73,10 @@ function GameDetail({
         {(game.venue || game.city) && (
           <div className="flex items-center gap-2 text-muted-foreground">
             <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>
+            <VenueLink game={game}>
               {game.venue}
               {game.city ? `, ${game.city}` : ""}
-            </span>
+            </VenueLink>
           </div>
         )}
         {game.innings_played && (
@@ -102,10 +120,10 @@ function GameDetail({
       {(game.venue || game.city) && (
         <div className="flex items-center gap-2 text-muted-foreground">
           <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-          <span>
+          <VenueLink game={game}>
             {game.venue}
             {game.city ? `, ${game.city}` : ""}
-          </span>
+          </VenueLink>
         </div>
       )}
 
@@ -234,7 +252,9 @@ function GameRow({
                       {game.venue && (
                         <>
                           <MapPin className="w-3 h-3 flex-shrink-0" />
-                          <span className="truncate">{game.venue}</span>
+                          <VenueLink game={game}>
+                            <span className="truncate">{game.venue}</span>
+                          </VenueLink>
                         </>
                       )}
                     </>
@@ -246,7 +266,9 @@ function GameRow({
                       {game.venue && (
                         <>
                           <span>·</span>
-                          <span className="truncate">{game.venue}</span>
+                          <VenueLink game={game}>
+                            <span className="truncate">{game.venue}</span>
+                          </VenueLink>
                         </>
                       )}
                     </>
