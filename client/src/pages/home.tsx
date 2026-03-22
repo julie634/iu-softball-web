@@ -1,4 +1,6 @@
 import { useGames, useNewsArticles, useSocialPosts, useRankings } from "@/hooks/use-supabase";
+import { useRankingsLastUpdated, useGamesLastUpdated } from "@/hooks/use-last-updated";
+import LastUpdated from "@/components/LastUpdated";
 import { useWeather } from "@/hooks/use-weather";
 import WeatherBadge from "@/components/WeatherBadge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -376,6 +378,8 @@ export default function HomePage() {
   const { data: articles, isLoading: newsLoading } = useNewsArticles();
   const { data: posts, isLoading: socialLoading } = useSocialPosts();
   const { data: rankings } = useRankings();
+  const { data: rankingsUpdatedAt, isLoading: rtsLoading } = useRankingsLastUpdated();
+  const { data: gamesUpdatedAt, isLoading: gtsLoading } = useGamesLastUpdated();
 
   const isLoading = gamesLoading || newsLoading || socialLoading;
 
@@ -400,7 +404,9 @@ export default function HomePage() {
   return (
     <div className="space-y-6" data-testid="home-page">
       <HeroBanner record={record} iuRanking={iuRanking} />
+      <LastUpdated timestamp={rankingsUpdatedAt} isLoading={rtsLoading} className="-mt-3" />
       {games && <NextGameCard games={games} rankings={rankingsData} />}
+      <LastUpdated timestamp={gamesUpdatedAt} isLoading={gtsLoading} className="-mt-3" />
       <QuickLinks />
       {articles && <RecentNews articles={articles} />}
       {posts && <SocialBuzz posts={posts} />}

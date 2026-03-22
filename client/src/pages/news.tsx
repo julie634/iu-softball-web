@@ -1,4 +1,6 @@
 import { useNewsArticles, useSocialPosts } from "@/hooks/use-supabase";
+import { useNewsLastUpdated } from "@/hooks/use-last-updated";
+import LastUpdated from "@/components/LastUpdated";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -149,6 +151,7 @@ function NewsSkeletons() {
 export default function NewsPage() {
   const { data: articles, isLoading: aLoading } = useNewsArticles();
   const { data: posts, isLoading: sLoading } = useSocialPosts();
+  const { data: newsUpdatedAt, isLoading: tsLoading } = useNewsLastUpdated();
 
   const isLoading = aLoading || sLoading;
 
@@ -157,6 +160,7 @@ export default function NewsPage() {
   return (
     <div className="space-y-4" data-testid="news-page">
       <h1 className="text-lg font-bold">News & Social</h1>
+      <LastUpdated timestamp={newsUpdatedAt} isLoading={tsLoading} />
 
       <Tabs defaultValue="news" className="w-full">
         <TabsList className="grid w-full grid-cols-2">

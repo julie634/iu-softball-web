@@ -1,4 +1,6 @@
 import { useGames, useRankings } from "@/hooks/use-supabase";
+import { useGamesLastUpdated } from "@/hooks/use-last-updated";
+import LastUpdated from "@/components/LastUpdated";
 import { useWeather } from "@/hooks/use-weather";
 import WeatherBadge from "@/components/WeatherBadge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -380,6 +382,7 @@ function ScheduleSkeletons() {
 export default function SchedulePage() {
   const { data: games, isLoading } = useGames();
   const { data: rankings } = useRankings();
+  const { data: gamesUpdatedAt, isLoading: tsLoading } = useGamesLastUpdated();
   const [showCompleted, setShowCompleted] = useState(false);
   const [expandedGameId, setExpandedGameId] = useState<string | null>(null);
 
@@ -404,6 +407,7 @@ export default function SchedulePage() {
           {completedGames.length}W · {upcomingGames.length} Remaining
         </Badge>
       </div>
+      <LastUpdated timestamp={gamesUpdatedAt} isLoading={tsLoading} />
 
       {/* Upcoming games */}
       {upcomingGames.length > 0 && (

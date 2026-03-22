@@ -1,4 +1,6 @@
 import { usePlayers, useBattingStats, usePitchingStats, useGames } from "@/hooks/use-supabase";
+import { useStatsLastUpdated } from "@/hooks/use-last-updated";
+import LastUpdated from "@/components/LastUpdated";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -286,6 +288,7 @@ export default function StatsPage() {
   const { data: battingStats, isLoading: bLoading } = useBattingStats();
   const { data: pitchingStats, isLoading: piLoading } = usePitchingStats();
   const { data: games, isLoading: gLoading } = useGames();
+  const { data: statsUpdatedAt, isLoading: tsLoading } = useStatsLastUpdated();
 
   const isLoading = pLoading || bLoading || piLoading || gLoading;
 
@@ -294,7 +297,10 @@ export default function StatsPage() {
 
   return (
     <div className="space-y-4" data-testid="stats-page">
-      <h1 className="text-lg font-bold">Stats</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-bold">Stats</h1>
+      </div>
+      <LastUpdated timestamp={statsUpdatedAt} isLoading={tsLoading} />
 
       <TeamSummary games={games} battingStats={battingStats} pitchingStats={pitchingStats} />
 
