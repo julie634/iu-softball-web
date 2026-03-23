@@ -12,6 +12,7 @@ import SchedulePage from "@/pages/schedule";
 import StatsPage from "@/pages/stats";
 import RosterPage from "@/pages/roster";
 import NewsPage from "@/pages/news";
+import ScoreboardPage from "@/pages/scoreboard";
 import { track } from "@vercel/analytics";
 import {
   Home,
@@ -21,10 +22,12 @@ import {
   Newspaper,
   Moon,
   Sun,
+  Radio,
 } from "lucide-react";
 
 const navItems = [
   { path: "/", label: "Home", icon: Home },
+  { path: "/live", label: "Live", icon: Radio },
   { path: "/schedule", label: "Schedule", icon: Calendar },
   { path: "/stats", label: "Stats", icon: BarChart3 },
   { path: "/roster", label: "Roster", icon: Users },
@@ -68,7 +71,7 @@ function BottomNav() {
               key={path}
               href={path}
               onClick={() => track('Tab Click', { tab: label, source: 'bottom_nav' })}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[56px] ${
+              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-colors min-w-[48px] ${
                 isActive
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
@@ -198,6 +201,7 @@ function AppRouter() {
     <AppLayout>
       <Switch>
         <Route path="/" component={HomePage} />
+        <Route path="/live" component={ScoreboardPage} />
         <Route path="/schedule" component={SchedulePage} />
         <Route path="/stats" component={StatsPage} />
         <Route path="/roster/:id" component={RosterPage} />
