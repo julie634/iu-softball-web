@@ -1,4 +1,4 @@
-import { useGames, useNewsArticles, useSocialPosts, useRankings } from "@/hooks/use-supabase";
+import { useGames, useNewsArticles, useRankings } from "@/hooks/use-supabase";
 import { useRankingsLastUpdated, useGamesLastUpdated } from "@/hooks/use-last-updated";
 import LastUpdated from "@/components/LastUpdated";
 import { useWeather } from "@/hooks/use-weather";
@@ -12,10 +12,7 @@ import {
   Clock,
   MapPin,
   Newspaper,
-  MessageCircle,
   ChevronRight,
-  Heart,
-  Share2,
   Tv,
 } from "lucide-react";
 import { Link } from "wouter";
@@ -258,67 +255,53 @@ function RecentNews({ articles }: { articles: any[] }) {
   );
 }
 
-function SocialBuzz({ posts }: { posts: any[] }) {
-  const recent = posts.slice(0, 3);
-  if (recent.length === 0) return null;
+function FollowBar() {
+  const links = [
+    {
+      name: "Instagram",
+      url: "https://www.instagram.com/indianasb/",
+      icon: (
+        <svg viewBox="0 0 24 24" className="w-4.5 h-4.5" fill="currentColor">
+          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+        </svg>
+      ),
+    },
+    {
+      name: "X",
+      url: "https://x.com/IndianaSB",
+      icon: (
+        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+        </svg>
+      ),
+    },
+    {
+      name: "TikTok",
+      url: "https://www.tiktok.com/@indianasoftball",
+      icon: (
+        <svg viewBox="0 0 24 24" className="w-4.5 h-4.5" fill="currentColor">
+          <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 0010.86 4.48v-7.1a8.16 8.16 0 005.58 2.2V11.3a4.85 4.85 0 01-3.58-1.59V6.69h3.58z" />
+        </svg>
+      ),
+    },
+  ];
 
   return (
-    <div data-testid="social-buzz-section">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-          <MessageCircle className="w-4 h-4" />
-          Social Buzz
-        </h2>
-        <Link href="/news" className="text-primary text-xs font-semibold flex items-center hover:underline">
-          View All <ChevronRight className="w-3 h-3 ml-0.5" />
-        </Link>
-      </div>
-      <div className="space-y-3">
-        {recent.map((post) => (
+    <div data-testid="follow-bar">
+      <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+        Follow IU Softball
+      </h2>
+      <div className="flex gap-2">
+        {links.map((link) => (
           <a
-            key={post.id}
-            href={post.post_url || "#"}
+            key={link.name}
+            href={link.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="block"
-            data-testid={`social-card-${post.id}`}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-muted hover:bg-muted/80 transition-colors text-foreground"
           >
-            <Card className="p-4 hover-elevate border border-card-border transition-colors">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs font-bold text-primary">
-                    {post.author?.charAt(0) || "@"}
-                  </span>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate">{post.author || "Unknown"}</p>
-                  <p className="text-xs text-muted-foreground truncate">{post.author_handle}</p>
-                </div>
-                {post.platform && (
-                  <Badge variant="secondary" className="ml-auto text-[10px] flex-shrink-0">
-                    {post.platform}
-                  </Badge>
-                )}
-              </div>
-              <p className="text-sm text-foreground/80 line-clamp-3 mb-2">{post.content}</p>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                {post.likes != null && (
-                  <span className="flex items-center gap-1">
-                    <Heart className="w-3 h-3" /> {post.likes}
-                  </span>
-                )}
-                {post.comments != null && (
-                  <span className="flex items-center gap-1">
-                    <MessageCircle className="w-3 h-3" /> {post.comments}
-                  </span>
-                )}
-                {post.shares != null && (
-                  <span className="flex items-center gap-1">
-                    <Share2 className="w-3 h-3" /> {post.shares}
-                  </span>
-                )}
-              </div>
-            </Card>
+            {link.icon}
+            <span className="text-xs font-semibold">{link.name}</span>
           </a>
         ))}
       </div>
@@ -376,12 +359,11 @@ function HomeSkeletons() {
 export default function HomePage() {
   const { data: games, isLoading: gamesLoading } = useGames();
   const { data: articles, isLoading: newsLoading } = useNewsArticles();
-  const { data: posts, isLoading: socialLoading } = useSocialPosts();
   const { data: rankings } = useRankings();
   const { data: rankingsUpdatedAt, isLoading: rtsLoading } = useRankingsLastUpdated();
   const { data: gamesUpdatedAt, isLoading: gtsLoading } = useGamesLastUpdated();
 
-  const isLoading = gamesLoading || newsLoading || socialLoading;
+  const isLoading = gamesLoading || newsLoading;
 
   const record = games
     ? {
@@ -409,7 +391,7 @@ export default function HomePage() {
       <LastUpdated timestamp={gamesUpdatedAt} isLoading={gtsLoading} className="-mt-3" />
       <QuickLinks />
       {articles && <RecentNews articles={articles} />}
-      {posts && <SocialBuzz posts={posts} />}
+      <FollowBar />
     </div>
   );
 }
