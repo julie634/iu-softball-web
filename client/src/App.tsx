@@ -24,8 +24,10 @@ import {
   Sun,
   Radio,
 } from "lucide-react";
+import { useGames } from "@/hooks/use-supabase";
+import { shouldShowLiveNav } from "@/lib/selectors";
 
-const navItems = [
+const baseNavItems = [
   { path: "/", label: "Home", icon: Home },
   { path: "/live", label: "Live", icon: Radio },
   { path: "/schedule", label: "Schedule", icon: Calendar },
@@ -33,6 +35,12 @@ const navItems = [
   { path: "/roster", label: "Roster", icon: Users },
   { path: "/news", label: "News", icon: Newspaper },
 ];
+
+function useNavItems() {
+  const { data: games } = useGames();
+  const showLive = games ? shouldShowLiveNav(games) : false;
+  return baseNavItems.filter((item) => item.path !== "/live" || showLive);
+}
 
 function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
@@ -54,6 +62,7 @@ function ThemeToggle() {
 
 function BottomNav() {
   const [location] = useLocation();
+  const navItems = useNavItems();
 
   return (
     <nav
@@ -96,6 +105,7 @@ function BottomNav() {
 
 function DesktopSidebar() {
   const [location] = useLocation();
+  const navItems = useNavItems();
 
   return (
     <aside

@@ -11,6 +11,12 @@ import { ChevronDown, ChevronUp, ExternalLink, MapPin, Tv, Trophy, Clock } from 
 import { useState } from "react";
 import { track } from "@vercel/analytics";
 import type { Game, Ranking } from "@/lib/supabase";
+import {
+  completedResultLabel,
+  computeRecord,
+  formatRecord,
+  partitionGames,
+} from "@/lib/selectors";
 
 function VenueLink({ game, children }: { game: Game; children: React.ReactNode }) {
   if (game.venue_lat != null && game.venue_lon != null) {
@@ -173,16 +179,9 @@ function GameRow({
   rankings: Ranking[];
 }) {
   const isCompleted = game.status === "completed";
-  const isWin =
-    isCompleted &&
-    game.iu_score != null &&
-    game.opponent_score != null &&
-    game.iu_score > game.opponent_score;
-  const isLoss =
-    isCompleted &&
-    game.iu_score != null &&
-    game.opponent_score != null &&
-    game.iu_score < game.opponent_score;
+  const result = isCompleted ? completedResultLabel(game) : null;
+  const isWin = result?.kind === "win";
+  const isLoss = result?.kind === "loss";
   const gameDate = new Date(game.date);
 
   return (
@@ -289,7 +288,7 @@ function GameRow({
               {/* Score or broadcast info + chevron */}
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 <div className="flex flex-col items-end">
-                  {isCompleted ? (
+                  {isCompleted && result ? (
                     <div className="flex items-center gap-1.5">
                       <span
                         className={`text-xs sm:text-sm font-bold px-2 py-0.5 rounded whitespace-nowrap ${
@@ -300,10 +299,9 @@ function GameRow({
                             : "bg-muted text-muted-foreground"
                         }`}
                       >
-                        {isWin ? "W" : isLoss ? "L" : "T"} {game.iu_score}-
-                        {game.opponent_score}
+                        {result.text}
                       </span>
-                      {game.box_score_url && (
+                      {game.box_score_url && result.kind !== "unavailable" && (
                         <a
                           href={game.box_score_url}
                           target="_blank"
@@ -390,33 +388,82 @@ export default function SchedulePage() {
   if (!games) return null;
 
   const rankingsData = rankings ?? [];
-
-  const completedGames = games
-    .filter((g) => g.status === "completed")
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-  const upcomingGames = games
-    .filter((g) => g.status !== "completed")
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const record = computeRecord(games);
+  const { upcoming, resultPending, completed, other } = partitionGames(games);
+  const remaining = upcoming.length;
 
   return (
     <div className="space-y-4" data-testid="schedule-page">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold">Schedule</h1>
         <Badge variant="secondary" className="text-xs">
-          {completedGames.length}W · {upcomingGames.length} Remaining
+          {formatRecord(record)}
+          {record.confWins + record.confLosses > 0
+            ? ` · ${record.confWins}-${record.confLosses} B1G`
+            : ""}
+          {remaining > 0 ? ` · ${remaining} remaining` : ""}
         </Badge>
       </div>
       <LastUpdated timestamp={gamesUpdatedAt} isLoading={tsLoading} />
 
       {/* Upcoming games */}
-      {upcomingGames.length > 0 && (
+      {upcoming.length > 0 && (
         <div>
           <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-            Upcoming Games ({upcomingGames.length})
+            Upcoming Games ({upcoming.length})
           </h2>
           <div className="space-y-2">
-            {upcomingGames.map((game) => (
+            {upcoming.map((game) => (
+              <GameRow
+                key={game.id}
+                game={game}
+                isExpanded={expandedGameId === game.id}
+                onToggle={() =>
+                  setExpandedGameId(
+                    expandedGameId === game.id ? null : game.id
+                  )
+                }
+                rankings={rankingsData}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Past-dated rows still marked upcoming/live in the database */}
+      {resultPending.length > 0 && (
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+            Result pending ({resultPending.length})
+          </h2>
+          <p className="text-xs text-muted-foreground mb-2">
+            Scheduled date has passed; final score not confirmed yet.
+          </p>
+          <div className="space-y-2">
+            {resultPending.map((game) => (
+              <GameRow
+                key={game.id}
+                game={game}
+                isExpanded={expandedGameId === game.id}
+                onToggle={() =>
+                  setExpandedGameId(
+                    expandedGameId === game.id ? null : game.id
+                  )
+                }
+                rankings={rankingsData}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {other.length > 0 && (
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+            Postponed / canceled ({other.length})
+          </h2>
+          <div className="space-y-2">
+            {other.map((game) => (
               <GameRow
                 key={game.id}
                 game={game}
@@ -434,7 +481,7 @@ export default function SchedulePage() {
       )}
 
       {/* Completed games (collapsible) */}
-      {completedGames.length > 0 && (
+      {completed.length > 0 && (
         <div>
           <button
             onClick={() => {
@@ -446,7 +493,7 @@ export default function SchedulePage() {
             className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 hover:text-foreground transition-colors w-full"
             data-testid="toggle-completed"
           >
-            Completed Games ({completedGames.length})
+            Completed Games ({completed.length})
             {showCompleted ? (
               <ChevronUp className="w-4 h-4" />
             ) : (
@@ -455,7 +502,7 @@ export default function SchedulePage() {
           </button>
           {showCompleted && (
             <div className="space-y-2">
-              {completedGames.map((game) => (
+              {completed.map((game) => (
                 <GameRow
                   key={game.id}
                   game={game}

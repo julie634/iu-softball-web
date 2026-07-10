@@ -6,7 +6,7 @@ import WeatherBadge from "@/components/WeatherBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { format, differenceInDays, differenceInHours, differenceInMinutes, isPast } from "date-fns";
+import { format, differenceInDays, differenceInHours, differenceInMinutes } from "date-fns";
 import {
   Calendar,
   Clock,
@@ -17,6 +17,15 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import type { Game, Ranking } from "@/lib/supabase";
+import { formatGameDayBadge } from "@/lib/dates";
+import {
+  computeRecord,
+  formatRecord,
+  getLastCompletedGame,
+  getNextGame,
+  getSeasonState,
+  type TeamRecord,
+} from "@/lib/selectors";
 
 function HeroBanner({
   record,
@@ -113,6 +122,48 @@ function NextGameWeather({ game }: { game: Game }) {
   );
 }
 
+function SeasonRecapCard({
+  games,
+  record,
+}: {
+  games: Game[];
+  record: TeamRecord;
+}) {
+  const last = getLastCompletedGame(games);
+  return (
+    <Card className="p-5 border border-card-border" data-testid="season-recap-card">
+      <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">
+        Season complete
+      </h2>
+      <p className="text-2xl font-bold tabular-nums mb-1">
+        Final record {formatRecord(record)}
+      </p>
+      <p className="text-xs text-muted-foreground mb-4">
+        Conference {record.confWins}-{record.confLosses} B1G
+      </p>
+      {last && (
+        <div className="pt-3 border-t border-border text-sm">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+            Last result
+          </p>
+          <p className="font-semibold">
+            {last.location === "away" ? "at " : "vs "}
+            {last.opponent}
+            {last.iu_score != null && last.opponent_score != null && (
+              <span className="text-muted-foreground font-normal ml-1">
+                {last.iu_score}-{last.opponent_score}
+              </span>
+            )}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {format(new Date(last.date), "MMM d, yyyy")}
+          </p>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function NextGameCard({
   games,
   rankings,
@@ -120,7 +171,7 @@ function NextGameCard({
   games: Game[];
   rankings: Ranking[];
 }) {
-  const nextGame = games.find((g) => g.status === "upcoming");
+  const nextGame = getNextGame(games);
   if (!nextGame) return null;
 
   const gameDate = new Date(nextGame.date);
@@ -136,10 +187,12 @@ function NextGameCard({
   return (
     <Card className="p-5 border border-card-border" data-testid="next-game-card">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Next Game</h2>
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+          {nextGame.status === "live" ? "Live" : "Next Game"}
+        </h2>
         <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
           <Clock className="w-3 h-3 mr-1" />
-          {isPast(gameDate) ? "Today" : format(gameDate, "MMM d")}
+          {formatGameDayBadge(gameDate)}
         </Badge>
       </div>
       <div className="flex items-center gap-4 mb-4">
@@ -365,14 +418,8 @@ export default function HomePage() {
 
   const isLoading = gamesLoading || newsLoading;
 
-  const record = games
-    ? {
-        wins: games.filter((g) => g.status === "completed" && g.iu_score != null && g.opponent_score != null && g.iu_score > g.opponent_score).length,
-        losses: games.filter((g) => g.status === "completed" && g.iu_score != null && g.opponent_score != null && g.iu_score < g.opponent_score).length,
-        confWins: games.filter((g) => g.status === "completed" && g.is_conference_game && g.iu_score != null && g.opponent_score != null && g.iu_score > g.opponent_score).length,
-        confLosses: games.filter((g) => g.status === "completed" && g.is_conference_game && g.iu_score != null && g.opponent_score != null && g.iu_score < g.opponent_score).length,
-      }
-    : { wins: 0, losses: 0, confWins: 0, confLosses: 0 };
+  const record = games ? computeRecord(games) : { wins: 0, losses: 0, confWins: 0, confLosses: 0 };
+  const seasonState = games ? getSeasonState(games) : "offseason";
 
   // Find IU's ranking
   const iuRanking = rankings?.find(
@@ -387,7 +434,12 @@ export default function HomePage() {
     <div className="space-y-6" data-testid="home-page">
       <HeroBanner record={record} iuRanking={iuRanking} />
       <LastUpdated timestamp={rankingsUpdatedAt} isLoading={rtsLoading} className="-mt-3" />
-      {games && <NextGameCard games={games} rankings={rankingsData} />}
+      {games && seasonState === "offseason" && (
+        <SeasonRecapCard games={games} record={record} />
+      )}
+      {games && seasonState !== "offseason" && (
+        <NextGameCard games={games} rankings={rankingsData} />
+      )}
       <LastUpdated timestamp={gamesUpdatedAt} isLoading={gtsLoading} className="-mt-3" />
       <QuickLinks />
       {articles && <RecentNews articles={articles} />}
