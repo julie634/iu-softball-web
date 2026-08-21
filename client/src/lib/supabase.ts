@@ -1,24 +1,26 @@
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL?.trim();
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
-
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error(
-    "Missing Supabase configuration. Copy .env.example to .env and set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.",
-  );
+function supabaseConfig() {
+  const url = import.meta.env.VITE_SUPABASE_URL?.trim();
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
+  if (!url || !anonKey) {
+    throw new Error(
+      "Missing Supabase configuration. Copy .env.example to .env and set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.",
+    );
+  }
+  return { url, anonKey };
 }
-
-const headers = {
-  apikey: SUPABASE_ANON_KEY,
-  Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-  "Content-Type": "application/json",
-};
 
 export async function supabaseQuery<T>(
   table: string,
   query: string = ""
 ): Promise<T[]> {
-  const url = `${SUPABASE_URL}/rest/v1/${table}${query ? `?${query}` : ""}`;
-  const res = await fetch(url, { headers });
+  const { url, anonKey } = supabaseConfig();
+  const res = await fetch(`${url}/rest/v1/${table}${query ? `?${query}` : ""}`, {
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+      "Content-Type": "application/json",
+    },
+  });
   if (!res.ok) {
     throw new Error(`Supabase error: ${res.status} ${res.statusText}`);
   }

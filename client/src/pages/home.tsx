@@ -6,7 +6,10 @@ import WeatherBadge from "@/components/WeatherBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { format, differenceInDays, differenceInHours, differenceInMinutes } from "date-fns";
+import { differenceInDays, differenceInHours, differenceInMinutes, format } from "date-fns";
+import { useNow } from "@/hooks/use-now";
+import FallBallPreview from "@/components/FallBallPreview";
+import { FALL_BALL } from "@/content/fall-ball";
 import {
   Calendar,
   Clock,
@@ -20,19 +23,23 @@ import type { Game, Ranking } from "@/lib/supabase";
 import { formatGameDayBadge } from "@/lib/dates";
 import {
   computeRecord,
+  fallBallGames,
   formatRecord,
   getLastCompletedGame,
   getNextGame,
   getSeasonState,
+  type SeasonState,
   type TeamRecord,
 } from "@/lib/selectors";
 
 function HeroBanner({
   record,
   iuRanking,
+  seasonState,
 }: {
   record: { wins: number; losses: number; confWins: number; confLosses: number };
   iuRanking: Ranking | undefined;
+  seasonState: SeasonState;
 }) {
   return (
     <div
@@ -58,7 +65,9 @@ function HeroBanner({
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight">IU Softball</h1>
-            <p className="text-white/70 text-sm font-medium">Indiana Hoosiers</p>
+            <p className="text-white/70 text-sm font-medium">
+              {seasonState === "fall-ball" ? FALL_BALL.title : "Indiana Hoosiers"}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3 mt-4">
@@ -66,7 +75,9 @@ function HeroBanner({
             {record.wins}-{record.losses}
           </span>
           <Badge variant="secondary" className="bg-white/20 text-white border-0 hover:bg-white/25 text-xs font-semibold">
-            {record.confWins}-{record.confLosses} B1G
+            {seasonState === "fall-ball"
+              ? "2026 official"
+              : `${record.confWins}-${record.confLosses} B1G`}
           </Badge>
         </div>
         {iuRanking && (iuRanking.rpi_rank || iuRanking.elo_rank) && (
@@ -82,7 +93,7 @@ function HeroBanner({
 }
 
 function CountdownTimer({ targetDate }: { targetDate: Date }) {
-  const now = new Date();
+  const now = useNow();
   const days = Math.max(0, differenceInDays(targetDate, now));
   const hours = Math.max(0, differenceInHours(targetDate, now) % 24);
   const minutes = Math.max(0, differenceInMinutes(targetDate, now) % 60);
@@ -133,10 +144,10 @@ function SeasonRecapCard({
   return (
     <Card className="p-5 border border-card-border" data-testid="season-recap-card">
       <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">
-        Season complete
+        2026 season
       </h2>
       <p className="text-2xl font-bold tabular-nums mb-1">
-        Final record {formatRecord(record)}
+        Official record {formatRecord(record)}
       </p>
       <p className="text-xs text-muted-foreground mb-4">
         Conference {record.confWins}-{record.confLosses} B1G
@@ -362,9 +373,11 @@ function FollowBar() {
   );
 }
 
-function QuickLinks() {
+function QuickLinks({ seasonState }: { seasonState: SeasonState }) {
   const links = [
-    { label: "Schedule", href: "/schedule", icon: Calendar },
+    seasonState === "fall-ball"
+      ? { label: "Fall Ball", href: "/fall-ball", icon: Calendar }
+      : { label: "Schedule", href: "/schedule", icon: Calendar },
     { label: "Roster", href: "/roster", icon: () => (
       <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -432,16 +445,26 @@ export default function HomePage() {
 
   return (
     <div className="space-y-6" data-testid="home-page">
-      <HeroBanner record={record} iuRanking={iuRanking} />
+      <HeroBanner record={record} iuRanking={iuRanking} seasonState={seasonState} />
       <LastUpdated timestamp={rankingsUpdatedAt} isLoading={rtsLoading} className="-mt-3" />
+      {games && seasonState === "fall-ball" && (
+        getNextGame(fallBallGames(games)) ? (
+          <NextGameCard games={fallBallGames(games)} rankings={rankingsData} />
+        ) : (
+          <FallBallPreview />
+        )
+      )}
       {games && seasonState === "offseason" && (
         <SeasonRecapCard games={games} record={record} />
       )}
-      {games && seasonState !== "offseason" && (
+      {games && (seasonState === "in-season" || seasonState === "postseason") && (
         <NextGameCard games={games} rankings={rankingsData} />
       )}
+      {games && seasonState === "fall-ball" && (
+        <SeasonRecapCard games={games} record={record} />
+      )}
       <LastUpdated timestamp={gamesUpdatedAt} isLoading={gtsLoading} className="-mt-3" />
-      <QuickLinks />
+      <QuickLinks seasonState={seasonState} />
       {articles && <RecentNews articles={articles} />}
       <FollowBar />
     </div>

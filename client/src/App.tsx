@@ -13,6 +13,7 @@ import StatsPage from "@/pages/stats";
 import RosterPage from "@/pages/roster";
 import NewsPage from "@/pages/news";
 import ScoreboardPage from "@/pages/scoreboard";
+import FallBallPage from "@/pages/fall-ball";
 import { track } from "@vercel/analytics";
 import {
   Home,
@@ -25,11 +26,12 @@ import {
   Radio,
 } from "lucide-react";
 import { useGames } from "@/hooks/use-supabase";
-import { shouldShowLiveNav } from "@/lib/selectors";
+import { getSeasonState, shouldShowLiveNav } from "@/lib/selectors";
 
 const baseNavItems = [
   { path: "/", label: "Home", icon: Home },
   { path: "/live", label: "Live", icon: Radio },
+  { path: "/fall-ball", label: "Fall", icon: Calendar },
   { path: "/schedule", label: "Schedule", icon: Calendar },
   { path: "/stats", label: "Stats", icon: BarChart3 },
   { path: "/roster", label: "Roster", icon: Users },
@@ -39,7 +41,12 @@ const baseNavItems = [
 function useNavItems() {
   const { data: games } = useGames();
   const showLive = games ? shouldShowLiveNav(games) : false;
-  return baseNavItems.filter((item) => item.path !== "/live" || showLive);
+  const seasonState = games ? getSeasonState(games) : "offseason";
+  return baseNavItems.filter((item) => {
+    if (item.path === "/live") return showLive;
+    if (item.path === "/fall-ball") return seasonState === "fall-ball";
+    return true;
+  });
 }
 
 function ThemeToggle() {
@@ -212,6 +219,7 @@ function AppRouter() {
       <Switch>
         <Route path="/" component={HomePage} />
         <Route path="/live" component={ScoreboardPage} />
+        <Route path="/fall-ball" component={FallBallPage} />
         <Route path="/schedule" component={SchedulePage} />
         <Route path="/stats" component={StatsPage} />
         <Route path="/roster/:id" component={RosterPage} />

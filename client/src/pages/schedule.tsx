@@ -14,7 +14,11 @@ import type { Game, Ranking } from "@/lib/supabase";
 import {
   completedResultLabel,
   computeRecord,
+  fallBallGames,
   formatRecord,
+  getSeasonState,
+  isFallBallGame,
+  officialGames,
   partitionGames,
 } from "@/lib/selectors";
 
@@ -238,7 +242,15 @@ function GameRow({
                     {game.location === "away" ? "at " : "vs "}
                     {game.opponent}
                   </p>
-                  {game.is_conference_game && (
+                  {isFallBallGame(game) && (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] px-1.5 py-0 border-primary/30 text-primary flex-shrink-0"
+                    >
+                      Fall
+                    </Badge>
+                  )}
+                  {game.is_conference_game && !isFallBallGame(game) && (
                     <Badge
                       variant="outline"
                       className="text-[10px] px-1.5 py-0 border-primary/30 text-primary flex-shrink-0"
@@ -383,13 +395,23 @@ export default function SchedulePage() {
   const { data: gamesUpdatedAt, isLoading: tsLoading } = useGamesLastUpdated();
   const [showCompleted, setShowCompleted] = useState(false);
   const [expandedGameId, setExpandedGameId] = useState<string | null>(null);
+  const [campaign, setCampaign] = useState<"auto" | "fall" | "spring">("auto");
 
   if (isLoading) return <ScheduleSkeletons />;
   if (!games) return null;
 
   const rankingsData = rankings ?? [];
+  const seasonState = getSeasonState(games);
+  const resolvedCampaign =
+    campaign === "auto"
+      ? seasonState === "fall-ball"
+        ? "fall"
+        : "spring"
+      : campaign;
+  const visibleGames =
+    resolvedCampaign === "fall" ? fallBallGames(games) : officialGames(games);
   const record = computeRecord(games);
-  const { upcoming, resultPending, completed, other } = partitionGames(games);
+  const { upcoming, resultPending, completed, other } = partitionGames(visibleGames);
   const remaining = upcoming.length;
 
   return (
@@ -405,6 +427,36 @@ export default function SchedulePage() {
         </Badge>
       </div>
       <LastUpdated timestamp={gamesUpdatedAt} isLoading={tsLoading} />
+
+      <div className="flex gap-1.5" data-testid="schedule-campaign-toggle">
+        {(
+          [
+            ["fall", "Fall Ball"],
+            ["spring", "2026 season"],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setCampaign(value)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              resolvedCampaign === value
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {resolvedCampaign === "fall" && visibleGames.length === 0 && (
+        <Card className="p-5 border border-card-border text-sm text-muted-foreground">
+          Fall exhibition games are not loaded yet. IU typically announces the slate
+          late August or early September. They will show here once they are added
+          with tournament name &quot;Fall Ball&quot;.
+        </Card>
+      )}
 
       {/* Upcoming games */}
       {upcoming.length > 0 && (

@@ -14,6 +14,9 @@ export function useGames() {
   return useQuery<Game[]>({
     queryKey: ["games"],
     queryFn: () => supabaseQuery<Game>("games", "order=date.asc"),
+    staleTime: 30_000,
+    refetchInterval: (query) =>
+      query.state.data?.some((g) => g.status === "live") ? 30_000 : 120_000,
   });
 }
 

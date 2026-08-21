@@ -13,7 +13,7 @@ export type TeamRecord = {
   confLosses: number;
 };
 
-export type SeasonState = "in-season" | "postseason" | "offseason";
+export type SeasonState = "in-season" | "postseason" | "offseason" | "fall-ball";
 
 export type PartitionedGames = {
   upcoming: Game[];
@@ -25,8 +25,36 @@ export type PartitionedGames = {
 const POSTSEASON_RE =
   /ncaa|regionals?|super\s*regionals?|wcws|world series|postseason/i;
 
+const FALL_BALL_RE =
+  /fall\s*ball|exhibition|scrimmage|alumni|intrasquad|intra-squad/i;
+
+/** Indianapolis calendar window when D1 softball is in fall ball, not spring season. */
+export const FALL_BALL_WINDOW = { startMd: "08-15", endMd: "11-15" } as const;
+
 export function isPostseasonGame(game: Game): boolean {
   return Boolean(game.tournament_name && POSTSEASON_RE.test(game.tournament_name));
+}
+
+export function isInFallBallWindow(now: Date = new Date()): boolean {
+  const md = calendarDayKey(now).slice(5);
+  return md >= FALL_BALL_WINDOW.startMd && md <= FALL_BALL_WINDOW.endMd;
+}
+
+/** Exhibition / fall games must not count toward the official spring record. */
+export function isFallBallGame(game: Game): boolean {
+  const haystack = `${game.tournament_name ?? ""} ${game.notes ?? ""}`;
+  if (FALL_BALL_RE.test(haystack)) return true;
+  if (isPostseasonGame(game)) return false;
+  const month = Number(calendarDayKey(game.date).slice(5, 7));
+  return month >= 8 && month <= 11;
+}
+
+export function officialGames(games: readonly Game[]): Game[] {
+  return games.filter((g) => !isFallBallGame(g));
+}
+
+export function fallBallGames(games: readonly Game[]): Game[] {
+  return games.filter(isFallBallGame);
 }
 
 export function hasUsableScores(game: Game): boolean {
@@ -41,6 +69,7 @@ export function computeRecord(games: readonly Game[]): TeamRecord {
   let confLosses = 0;
 
   for (const g of games) {
+    if (isFallBallGame(g)) continue;
     if (g.status !== "completed" || !hasUsableScores(g)) continue;
     const iu = g.iu_score as number;
     const opp = g.opponent_score as number;
@@ -129,19 +158,34 @@ export function getLastCompletedGame(
 
 /**
  * Season state from schedule data:
- * - offseason: before first game day, after last game day, or all terminal with no remaining play
+ * - fall-ball: Aug 15–Nov 15 (Indianapolis), or an active fall/exhibition slate
+ * - offseason: before first official game day, after last official game day, or all terminal
  * - postseason: today falls in a postseason tournament window (by tournament_name)
- * - in-season: otherwise between first and last scheduled game
+ * - in-season: otherwise between first and last official scheduled game
  */
 export function getSeasonState(
   games: readonly Game[],
   now: Date = new Date(),
 ): SeasonState {
-  if (!games.length) return "offseason";
+  if (isInFallBallWindow(now)) return "fall-ball";
 
-  const days = games
-    .map((g) => calendarDayKey(g.date))
-    .sort();
+  const spring = officialGames(games);
+  if (!spring.length) {
+    const fall = fallBallGames(games);
+    if (!fall.length) return "offseason";
+    const fallDays = fall.map((g) => calendarDayKey(g.date)).sort();
+    const today = calendarDayKey(now);
+    const fallOpen = fall.some((g) => g.status === "upcoming" || g.status === "live");
+    if (
+      today >= fallDays[0]! &&
+      (today <= fallDays[fallDays.length - 1]! || fallOpen)
+    ) {
+      return "fall-ball";
+    }
+    return "offseason";
+  }
+
+  const days = spring.map((g) => calendarDayKey(g.date)).sort();
   const firstDay = days[0]!;
   const lastDay = days[days.length - 1]!;
   const today = calendarDayKey(now);
@@ -150,14 +194,14 @@ export function getSeasonState(
     return "offseason";
   }
 
-  const stillOpen = games.some(
+  const stillOpen = spring.some(
     (g) => g.status === "upcoming" || g.status === "live",
   );
   if (!stillOpen && today >= lastDay) {
     return "offseason";
   }
 
-  const postGames = games.filter(isPostseasonGame);
+  const postGames = spring.filter(isPostseasonGame);
   if (postGames.length > 0) {
     const postDays = postGames.map((g) => calendarDayKey(g.date)).sort();
     const firstPost = postDays[0]!;

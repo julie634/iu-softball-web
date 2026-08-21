@@ -5,6 +5,7 @@ import {
   computeRecord,
   getNextGame,
   getSeasonState,
+  isFallBallGame,
   partitionGames,
   shouldShowLiveNav,
 } from "./selectors";
@@ -145,7 +146,46 @@ describe("completedResultLabel", () => {
   });
 });
 
+describe("isFallBallGame / computeRecord", () => {
+  it("does not count August–November exhibition games in the official record", () => {
+    const games = [
+      game({
+        id: "spring-w",
+        date: "2026-03-01T18:00:00.000Z",
+        status: "completed",
+        iu_score: 5,
+        opponent_score: 1,
+      }),
+      game({
+        id: "fall-w",
+        date: "2026-09-27T18:00:00.000Z",
+        status: "completed",
+        iu_score: 8,
+        opponent_score: 2,
+        tournament_name: "Fall Ball",
+      }),
+    ];
+    expect(isFallBallGame(games[1]!)).toBe(true);
+    expect(computeRecord(games)).toEqual({
+      wins: 1,
+      losses: 0,
+      confWins: 0,
+      confLosses: 0,
+    });
+  });
+});
+
 describe("getSeasonState", () => {
+  it("returns fall-ball during the August–November window", () => {
+    const games = [
+      game({ id: "1", date: "2026-02-10T18:00:00.000Z", status: "completed", iu_score: 1, opponent_score: 0 }),
+      game({ id: "2", date: "2026-05-20T18:00:00.000Z", status: "completed", iu_score: 2, opponent_score: 1 }),
+    ];
+    expect(getSeasonState(games, new Date("2026-08-21T16:00:00.000Z"))).toBe(
+      "fall-ball",
+    );
+  });
+
   it("returns offseason outside schedule window", () => {
     const games = [
       game({ id: "1", date: "2026-02-10T18:00:00.000Z", status: "completed", iu_score: 1, opponent_score: 0 }),
