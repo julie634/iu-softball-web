@@ -13,7 +13,9 @@ Frontend uses the **anon** key only (`VITE_SUPABASE_*` in repo root `.env`).
 | Path | Purpose |
 |------|---------|
 | `migrations/20260710020928_remote_schema.sql` | Pulled remote schema (tables, RLS SELECT policies, grants) |
-| `migrations/20260710023000_harden_anon_grants.sql` | **Proposed** least-privilege grants (not applied yet) |
+| `migrations/20260710023000_harden_anon_grants.sql` | Least-privilege anon grants — **applied 2026-08-21** (SELECT-only on games/players/stats/news/social/rankings) |
+| `migrations/20260821020000_coaches.sql` | `coaches` table, RLS SELECT, seed from IU Athletics 2027 staff page |
+| `migrations/20260821021000_schedule_check_data_health.sql` | Hourly `check-softball-data-health` cron (clones sibling invoke pattern; no secrets in repo) |
 | `functions/` | Edge Functions (download with script below) |
 | `SECURITY_AUDIT.md` | RLS / privilege audit |
 | `FIELD_MISMATCH_REPORT.md` | Ingestion payload vs column report |
@@ -27,8 +29,9 @@ Frontend uses the **anon** key only (`VITE_SUPABASE_*` in repo root `.env`).
 |------|--------|---------|----------------------------------|-----------------|
 | `update-scores` | `functions/update-scores/index.ts` | Patch scores/status on upcoming/live + incomplete finals | Every 30 min via pg_cron | ESPN **site.api** schedule (`baseball/college-softball/teams/648`, season=end year). Do **not** use `cdn.espn.com` (bot challenge from Supabase IPs). |
 | `update-stats` | `functions/update-stats/index.ts` | Upsert batting + pitching | Every 30 min via pg_cron | iuhoosiers.com `/stats/2026` |
-| `update-news` | `functions/update-news/index.ts` | Insert new athletics news | (cron TBD) | iuhoosiers.com archives |
-| `update-rankings` | `functions/update-rankings/index.ts` | RPI + ELO rankings | Every 6 hours via pg_cron | warrennolan.com 2026 RPI/ELO |
+| `update-news` | `functions/update-news/index.ts` | Insert new athletics news | `update-softball-news` every 4 hours | iuhoosiers.com archives |
+| `update-rankings` | `functions/update-rankings/index.ts` | RPI + ELO rankings | `update-softball-rankings` every 6 hours | warrennolan.com 2026 RPI/ELO |
+| `check-data-health` | `functions/check-data-health/index.ts` | Stale/failure report | `check-softball-data-health` hourly at :15 (after migration) | `data_source_runs` |
 
 Confirm real schedules with:
 
@@ -80,8 +83,9 @@ supabase db pull
 See `SECURITY_AUDIT.md`.
 
 - **RLS:** enabled; **SELECT-only** public policies → anon cannot write (confirmed live).
-- **Grants:** `GRANT ALL` to anon is broader than needed; apply harden migration after review.
-- **Cron:** extension present; job rows not in schema dump — export `SELECT * FROM cron.job;`.
+- **Grants:** `20260710023000_harden_anon_grants` **is applied**. Anon is SELECT-only on games/players/stats/news/social/rankings. Do not re-apply that file.
+- **Cron (2026-08-21):** stats/scores every 30 min (active); news every 4 hours (active); rankings every 6 hours was **inactive** (last success 2026-07-10) and has been **re-enabled** — confirm it stays on. `check-data-health` had no cron row; schedule it with `20260821021000`.
+- **Alerts:** `ALERT_WEBHOOK_URL` is unset. Health function returns JSON only until that secret is set in the dashboard (never commit it).
 
 ---
 

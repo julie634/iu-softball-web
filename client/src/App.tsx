@@ -1,5 +1,4 @@
-import { Switch, Route, Router, Link, useLocation } from "wouter";
-import { useHashLocation } from "wouter/use-hash-location";
+import { Switch, Route, Router, Link, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -14,6 +13,8 @@ import RosterPage from "@/pages/roster";
 import NewsPage from "@/pages/news";
 import ScoreboardPage from "@/pages/scoreboard";
 import FallBallPage from "@/pages/fall-ball";
+import CoachesPage from "@/pages/coaches";
+import StatusPage from "@/pages/status";
 import { track } from "@vercel/analytics";
 import {
   Home,
@@ -220,11 +221,18 @@ function AppRouter() {
         <Route path="/" component={HomePage} />
         <Route path="/live" component={ScoreboardPage} />
         <Route path="/fall-ball" component={FallBallPage} />
+        <Route path="/schedule/:id" component={SchedulePage} />
         <Route path="/schedule" component={SchedulePage} />
         <Route path="/stats" component={StatsPage} />
-        <Route path="/roster/:id" component={RosterPage} />
+        <Route path="/player/:id" component={RosterPage} />
+        <Route path="/roster/:id">
+          {(params) => <Redirect to={`/player/${params.id}`} />}
+        </Route>
         <Route path="/roster" component={RosterPage} />
+        <Route path="/coaches" component={CoachesPage} />
+        <Route path="/news/:id" component={NewsPage} />
         <Route path="/news" component={NewsPage} />
+        <Route path="/status" component={StatusPage} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
@@ -237,7 +245,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
-          <Router hook={useHashLocation}>
+          <Router>
             <AppRouter />
           </Router>
         </TooltipProvider>

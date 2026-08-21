@@ -1,8 +1,10 @@
 // check-data-health — alerts when ingestion sources fail or go stale.
-// Schedule via pg_cron (e.g. every hour).
+// Schedule via pg_cron job `check-softball-data-health` (hourly at :15).
+// Migration 20260821021000 clones the existing Edge Function invoke pattern
+// and does not embed secrets.
 //
-// Configure ALERT_WEBHOOK_URL (Slack/Discord/etc incoming webhook) before enabling.
-// Until set, the function returns a structured health report without sending alerts.
+// ALERT_WEBHOOK_URL is unset as of 2026-08-21. Until that secret is added,
+// this function returns a structured health report without sending alerts.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 

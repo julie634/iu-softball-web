@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ChevronDown, ChevronUp, ExternalLink, MapPin, Tv, Trophy, Clock } from "lucide-react";
 import { useState } from "react";
+import { useLocation, useParams } from "wouter";
 import { track } from "@vercel/analytics";
 import type { Game, Ranking } from "@/lib/supabase";
 import {
@@ -393,20 +394,33 @@ export default function SchedulePage() {
   const { data: games, isLoading } = useGames();
   const { data: rankings } = useRankings();
   const { data: gamesUpdatedAt, isLoading: tsLoading } = useGamesLastUpdated();
-  const [showCompleted, setShowCompleted] = useState(false);
-  const [expandedGameId, setExpandedGameId] = useState<string | null>(null);
+  const params = useParams<{ id?: string }>();
+  const [, setLocation] = useLocation();
+  const [showCompleted, setShowCompleted] = useState(Boolean(params.id));
+  const [expandedGameId, setExpandedGameId] = useState<string | null>(params.id ?? null);
   const [campaign, setCampaign] = useState<"auto" | "fall" | "spring">("auto");
+
+  const toggleGame = (id: string) => {
+    const next = expandedGameId === id ? null : id;
+    setExpandedGameId(next);
+    setLocation(next ? `/schedule/${next}` : "/schedule");
+  };
 
   if (isLoading) return <ScheduleSkeletons />;
   if (!games) return null;
 
   const rankingsData = rankings ?? [];
   const seasonState = getSeasonState(games);
+  const routedGame = params.id ? games.find((g) => g.id === params.id) : undefined;
   const resolvedCampaign =
     campaign === "auto"
-      ? seasonState === "fall-ball"
-        ? "fall"
-        : "spring"
+      ? routedGame
+        ? isFallBallGame(routedGame)
+          ? "fall"
+          : "spring"
+        : seasonState === "fall-ball"
+          ? "fall"
+          : "spring"
       : campaign;
   const visibleGames =
     resolvedCampaign === "fall" ? fallBallGames(games) : officialGames(games);
@@ -470,11 +484,7 @@ export default function SchedulePage() {
                 key={game.id}
                 game={game}
                 isExpanded={expandedGameId === game.id}
-                onToggle={() =>
-                  setExpandedGameId(
-                    expandedGameId === game.id ? null : game.id
-                  )
-                }
+                onToggle={() => toggleGame(game.id)}
                 rankings={rankingsData}
               />
             ))}
@@ -497,11 +507,7 @@ export default function SchedulePage() {
                 key={game.id}
                 game={game}
                 isExpanded={expandedGameId === game.id}
-                onToggle={() =>
-                  setExpandedGameId(
-                    expandedGameId === game.id ? null : game.id
-                  )
-                }
+                onToggle={() => toggleGame(game.id)}
                 rankings={rankingsData}
               />
             ))}
@@ -520,11 +526,7 @@ export default function SchedulePage() {
                 key={game.id}
                 game={game}
                 isExpanded={expandedGameId === game.id}
-                onToggle={() =>
-                  setExpandedGameId(
-                    expandedGameId === game.id ? null : game.id
-                  )
-                }
+                onToggle={() => toggleGame(game.id)}
                 rankings={rankingsData}
               />
             ))}
@@ -559,11 +561,7 @@ export default function SchedulePage() {
                   key={game.id}
                   game={game}
                   isExpanded={expandedGameId === game.id}
-                  onToggle={() =>
-                    setExpandedGameId(
-                      expandedGameId === game.id ? null : game.id
-                    )
-                  }
+                  onToggle={() => toggleGame(game.id)}
                   rankings={rankingsData}
                 />
               ))}

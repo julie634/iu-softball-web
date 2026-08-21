@@ -5,16 +5,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
+import { Link, useParams } from "wouter";
 import { track } from "@vercel/analytics";
 import type { NewsArticle } from "@/lib/supabase";
 
 function NewsCard({ article }: { article: NewsArticle }) {
   return (
-    <a
-      href={article.url || "#"}
-      target="_blank"
-      rel="noopener noreferrer"
+    <Link
+      href={`/news/${article.id}`}
       className="block"
       onClick={() => track('News Click', { title: article.title, source: article.source || 'unknown' })}
       data-testid={`news-article-${article.id}`}
@@ -52,12 +51,12 @@ function NewsCard({ article }: { article: NewsArticle }) {
               <span>{format(new Date(article.published_date), "MMM d, yyyy")}</span>
             )}
             <span className="text-primary flex items-center gap-1 font-medium">
-              Read More <ExternalLink className="w-3 h-3" />
+              Open article
             </span>
           </div>
         </div>
       </Card>
-    </a>
+    </Link>
   );
 }
 
@@ -145,8 +144,42 @@ function NewsSkeletons() {
 export default function NewsPage() {
   const { data: articles, isLoading } = useNewsArticles();
   const { data: newsUpdatedAt, isLoading: tsLoading } = useNewsLastUpdated();
+  const params = useParams<{ id?: string }>();
 
   if (isLoading) return <NewsSkeletons />;
+
+  if (params.id) {
+    const article = articles?.find((item) => item.id === params.id);
+    if (!article) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground text-sm">Article not found.</p>
+          <Link href="/news" className="text-primary hover:underline text-sm mt-2 inline-block">
+            Back to news
+          </Link>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-4" data-testid="news-article-page">
+        <Link href="/news" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+          <ArrowLeft className="w-4 h-4" />
+          Back to news
+        </Link>
+        <NewsCard article={article} />
+        {article.url && (
+          <a
+            href={article.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-sm text-primary font-semibold hover:underline"
+          >
+            Read on {article.source || "the source"} <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6" data-testid="news-page">

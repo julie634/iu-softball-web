@@ -144,6 +144,29 @@ export interface SocialPost {
   post_url: string | null;
 }
 
+export interface Coach {
+  id: string;
+  name: string;
+  title: string;
+  email: string | null;
+  phone: string | null;
+  group_name: "coaching" | "support";
+  sort_order: number;
+  source_url: string;
+  sourced_at: string;
+}
+
+export interface DataSourceRun {
+  id: string;
+  source: string;
+  started_at: string;
+  finished_at: string | null;
+  status: "success" | "partial" | "failure";
+  rows_parsed: number | null;
+  rows_written: number | null;
+  error_summary: string | null;
+}
+
 export interface PlayerWithStats extends Player {
   batting_stats?: BattingStats;
   pitching_stats?: PitchingStats;

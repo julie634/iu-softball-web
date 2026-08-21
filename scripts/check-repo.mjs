@@ -41,6 +41,16 @@ const RULES = [
     pattern: /export type SeasonState = "in-season" \| "postseason" \| "offseason";/,
     message: "SeasonState must include fall-ball.",
   },
+  {
+    file: "client/src/App.tsx",
+    pattern: /useHashLocation/,
+    message: "App must use path-based routes, not hash routing.",
+  },
+  {
+    file: "client/src/pages/roster.tsx",
+    pattern: /const COACHING_STAFF/,
+    message: "Roster must not hardcode coaching staff.",
+  },
 ];
 
 const TEXT_EXT = new Set([".ts", ".tsx", ".js", ".mjs", ".md", ".json"]);
@@ -99,6 +109,14 @@ for (const key of ["VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY"]) {
   if (!envExample.includes(key)) {
     failures.push(`.env.example: missing ${key}`);
   }
+}
+
+const coachesSource = readFileSync(join(ROOT, "client/src/content/coaches.ts"), "utf8");
+if (!coachesSource.includes("https://iuhoosiers.com/sports/softball/coaches")) {
+  failures.push("client/src/content/coaches.ts: must cite the IU Athletics coaches page");
+}
+if (coachesSource.includes("bio:")) {
+  failures.push("client/src/content/coaches.ts: do not invent coach bios");
 }
 
 if (failures.length) {

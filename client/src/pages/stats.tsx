@@ -148,7 +148,7 @@ function BattingTable({
               >
                 <td className="py-2.5 px-2 sticky left-0 bg-background z-10">
                   <Link
-                    href={`/roster/${s.player_id}`}
+                    href={`/player/${s.player_id}`}
                     className="text-sm font-semibold text-primary hover:underline whitespace-nowrap"
                     data-testid={`player-link-batting-${s.player_id}`}
                   >
@@ -247,7 +247,7 @@ function PitchingTable({
               >
                 <td className="py-2.5 px-2 sticky left-0 bg-background z-10">
                   <Link
-                    href={`/roster/${s.player_id}`}
+                    href={`/player/${s.player_id}`}
                     className="text-sm font-semibold text-primary hover:underline whitespace-nowrap"
                     data-testid={`player-link-pitching-${s.player_id}`}
                   >
