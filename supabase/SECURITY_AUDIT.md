@@ -13,7 +13,7 @@
 | Anon write policies (INSERT/UPDATE/DELETE) | **None** — only `FOR SELECT USING (true)` |
 | Live anon INSERT | **Blocked** (42501 RLS) |
 | Live anon UPDATE/DELETE | **0 rows** affected (`Content-Range: */0`) |
-| Table `GRANT`s to anon | **`GRANT ALL`** — overly broad; RLS saves you today |
+| Table `GRANT`s to anon | **SELECT-only after 20260710023000** (applied 2026-08-21) |
 | Default privileges for new tables | **`GRANT DELETE, INSERT, SELECT, UPDATE` to anon** — **fix** |
 | Edge Functions in repo | Pending download (script: `scripts/download-edge-functions.sh`) |
 | Cron job definitions in migration | **Not present** — `pg_cron` extension created, no `cron.schedule` rows dumped |

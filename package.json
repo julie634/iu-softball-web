@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "check": "tsc",
     "test": "vitest run",
-    "verify": "npm run check && npm run test && npm run build"
+    "check:repo": "node scripts/check-repo.mjs",
+    "verify": "npm run check:repo && npm run check && npm run test && npm run build"
   },
   "engines": {
     "node": ">=20.19.0"

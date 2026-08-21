@@ -9,7 +9,8 @@ import { useState } from "react";
 import { ArrowUpDown, TrendingUp } from "lucide-react";
 import { Link } from "wouter";
 import { track } from "@vercel/analytics";
-import type { Player, BattingStats, PitchingStats } from "@/lib/supabase";
+import type { Player, BattingStats, PitchingStats, Game } from "@/lib/supabase";
+import { computeRecord, formatRecord } from "@/lib/selectors";
 
 function fmt(val: number | null, decimals = 3): string {
   if (val == null) return "—";
@@ -29,13 +30,11 @@ function TeamSummary({
   battingStats,
   pitchingStats,
 }: {
-  games: any[];
+  games: Game[];
   battingStats: BattingStats[];
   pitchingStats: PitchingStats[];
 }) {
-  const completed = games.filter((g: any) => g.status === "completed");
-  const wins = completed.filter((g: any) => g.iu_score > g.opponent_score).length;
-  const losses = completed.filter((g: any) => g.iu_score < g.opponent_score).length;
+  const record = computeRecord(games);
 
   const totalAvg = battingStats.length > 0
     ? battingStats.reduce((sum, s) => sum + (s.avg || 0) * (s.at_bats || 0), 0) /
@@ -51,7 +50,7 @@ function TeamSummary({
   const totalSB = battingStats.reduce((sum, s) => sum + (s.stolen_bases || 0), 0);
 
   const stats = [
-    { label: "Record", value: `${wins}-${losses}` },
+    { label: "Record", value: formatRecord(record) },
     { label: "AVG", value: totalAvg.toFixed(3).replace(/^0/, "") },
     { label: "ERA", value: totalEra.toFixed(2) },
     { label: "HR", value: String(totalHR) },
@@ -149,7 +148,7 @@ function BattingTable({
               >
                 <td className="py-2.5 px-2 sticky left-0 bg-background z-10">
                   <Link
-                    href={`/roster/${s.player_id}`}
+                    href={`/player/${s.player_id}`}
                     className="text-sm font-semibold text-primary hover:underline whitespace-nowrap"
                     data-testid={`player-link-batting-${s.player_id}`}
                   >
@@ -248,7 +247,7 @@ function PitchingTable({
               >
                 <td className="py-2.5 px-2 sticky left-0 bg-background z-10">
                   <Link
-                    href={`/roster/${s.player_id}`}
+                    href={`/player/${s.player_id}`}
                     className="text-sm font-semibold text-primary hover:underline whitespace-nowrap"
                     data-testid={`player-link-pitching-${s.player_id}`}
                   >

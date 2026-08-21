@@ -1,24 +1,26 @@
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL?.trim();
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
-
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error(
-    "Missing Supabase configuration. Copy .env.example to .env and set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.",
-  );
+function supabaseConfig() {
+  const url = import.meta.env.VITE_SUPABASE_URL?.trim();
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
+  if (!url || !anonKey) {
+    throw new Error(
+      "Missing Supabase configuration. Copy .env.example to .env and set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.",
+    );
+  }
+  return { url, anonKey };
 }
-
-const headers = {
-  apikey: SUPABASE_ANON_KEY,
-  Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-  "Content-Type": "application/json",
-};
 
 export async function supabaseQuery<T>(
   table: string,
   query: string = ""
 ): Promise<T[]> {
-  const url = `${SUPABASE_URL}/rest/v1/${table}${query ? `?${query}` : ""}`;
-  const res = await fetch(url, { headers });
+  const { url, anonKey } = supabaseConfig();
+  const res = await fetch(`${url}/rest/v1/${table}${query ? `?${query}` : ""}`, {
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+      "Content-Type": "application/json",
+    },
+  });
   if (!res.ok) {
     throw new Error(`Supabase error: ${res.status} ${res.statusText}`);
   }
@@ -140,6 +142,29 @@ export interface SocialPost {
   shares: number | null;
   media_url: string | null;
   post_url: string | null;
+}
+
+export interface Coach {
+  id: string;
+  name: string;
+  title: string;
+  email: string | null;
+  phone: string | null;
+  group_name: "coaching" | "support";
+  sort_order: number;
+  source_url: string;
+  sourced_at: string;
+}
+
+export interface DataSourceRun {
+  id: string;
+  source: string;
+  started_at: string;
+  finished_at: string | null;
+  status: "success" | "partial" | "failure";
+  rows_parsed: number | null;
+  rows_written: number | null;
+  error_summary: string | null;
 }
 
 export interface PlayerWithStats extends Player {
