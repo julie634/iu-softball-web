@@ -24,15 +24,18 @@ import {
   getLastCompletedGame,
   getNextGame,
   getSeasonState,
+  isFallBallGame,
   type TeamRecord,
 } from "@/lib/selectors";
 
 function HeroBanner({
   record,
   iuRanking,
+  springRecordLabel,
 }: {
   record: { wins: number; losses: number; confWins: number; confLosses: number };
   iuRanking: Ranking | undefined;
+  springRecordLabel?: boolean;
 }) {
   return (
     <div
@@ -69,6 +72,11 @@ function HeroBanner({
             {record.confWins}-{record.confLosses} B1G
           </Badge>
         </div>
+        {springRecordLabel && (
+          <p className="text-white/70 text-xs mt-1.5" data-testid="hero-record-label">
+            2026 spring season record
+          </p>
+        )}
         {iuRanking && (iuRanking.rpi_rank || iuRanking.elo_rank) && (
           <p className="text-white/70 text-xs mt-1.5 tabular-nums" data-testid="hero-rankings">
             {iuRanking.rpi_rank ? `RPI #${iuRanking.rpi_rank}` : ""}
@@ -164,6 +172,31 @@ function SeasonRecapCard({
   );
 }
 
+function FallBallBanner() {
+  return (
+    <Card
+      className="p-5 border border-primary/20 bg-primary/5"
+      data-testid="fall-ball-banner"
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <Badge
+          variant="outline"
+          className="text-xs bg-primary/10 text-primary border-primary/30"
+        >
+          Fall Ball
+        </Badge>
+      </div>
+      <h2 className="text-base font-bold mb-1.5">Fall Ball at Andy Mohr Field</h2>
+      <p className="text-sm text-muted-foreground">
+        Home games are free admission at Andy Mohr Field. Opponent and first
+        pitch come from the official schedule below — exhibitions are not on
+        the NCAA live board. Results will be posted on Schedule and do not
+        count toward the 2026 spring record.
+      </p>
+    </Card>
+  );
+}
+
 function NextGameCard({
   games,
   rankings,
@@ -175,6 +208,7 @@ function NextGameCard({
   if (!nextGame) return null;
 
   const gameDate = new Date(nextGame.date);
+  const fallBall = isFallBallGame(nextGame);
 
   // Look up opponent in rankings for their record
   const opponentRanking = rankings.find(
@@ -190,10 +224,21 @@ function NextGameCard({
         <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
           {nextGame.status === "live" ? "Live" : "Next Game"}
         </h2>
-        <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
-          <Clock className="w-3 h-3 mr-1" />
-          {formatGameDayBadge(gameDate)}
-        </Badge>
+        <div className="flex items-center gap-1.5">
+          {fallBall && (
+            <Badge
+              variant="outline"
+              className="text-xs bg-primary/5 text-primary border-primary/20"
+              data-testid="next-game-fall-ball-badge"
+            >
+              Fall Ball
+            </Badge>
+          )}
+          <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
+            <Clock className="w-3 h-3 mr-1" />
+            {formatGameDayBadge(gameDate)}
+          </Badge>
+        </div>
       </div>
       <div className="flex items-center gap-4 mb-4">
         <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -420,6 +465,10 @@ export default function HomePage() {
 
   const record = games ? computeRecord(games) : { wins: 0, losses: 0, confWins: 0, confLosses: 0 };
   const seasonState = games ? getSeasonState(games) : "offseason";
+  const nextGame = games ? getNextGame(games) : undefined;
+  const nextIsFallBall = Boolean(nextGame && isFallBallGame(nextGame));
+  const showNextGame = Boolean(games && (nextIsFallBall || seasonState !== "offseason"));
+  const showSeasonRecap = Boolean(games && seasonState === "offseason" && !nextIsFallBall);
 
   // Find IU's ranking
   const iuRanking = rankings?.find(
@@ -432,12 +481,17 @@ export default function HomePage() {
 
   return (
     <div className="space-y-6" data-testid="home-page">
-      <HeroBanner record={record} iuRanking={iuRanking} />
+      <HeroBanner
+        record={record}
+        iuRanking={iuRanking}
+        springRecordLabel={nextIsFallBall}
+      />
       <LastUpdated timestamp={rankingsUpdatedAt} isLoading={rtsLoading} className="-mt-3" />
-      {games && seasonState === "offseason" && (
+      {nextIsFallBall && <FallBallBanner />}
+      {games && showSeasonRecap && (
         <SeasonRecapCard games={games} record={record} />
       )}
-      {games && seasonState !== "offseason" && (
+      {games && showNextGame && (
         <NextGameCard games={games} rankings={rankingsData} />
       )}
       <LastUpdated timestamp={gamesUpdatedAt} isLoading={gtsLoading} className="-mt-3" />

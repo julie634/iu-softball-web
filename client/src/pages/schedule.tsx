@@ -14,7 +14,9 @@ import type { Game, Ranking } from "@/lib/supabase";
 import {
   completedResultLabel,
   computeRecord,
+  fallBallInningsLabel,
   formatRecord,
+  isFallBallGame,
   partitionGames,
 } from "@/lib/selectors";
 
@@ -163,6 +165,12 @@ function GameDetail({
           </a>
         )}
       </div>
+
+      {isFallBallGame(game) && game.notes && (
+        <div className="text-xs text-muted-foreground italic" data-testid={`fall-ball-notes-${game.id}`}>
+          {game.notes}
+        </div>
+      )}
     </div>
   );
 }
@@ -183,6 +191,8 @@ function GameRow({
   const isWin = result?.kind === "win";
   const isLoss = result?.kind === "loss";
   const gameDate = new Date(game.date);
+  const inningsLabel = fallBallInningsLabel(game);
+  const fallBall = isFallBallGame(game);
 
   return (
     <Card
@@ -238,7 +248,25 @@ function GameRow({
                     {game.location === "away" ? "at " : "vs "}
                     {game.opponent}
                   </p>
-                  {game.is_conference_game && (
+                  {fallBall && (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] px-1.5 py-0 border-primary/30 text-primary flex-shrink-0"
+                      data-testid={`fall-ball-badge-${game.id}`}
+                    >
+                      Fall Ball
+                    </Badge>
+                  )}
+                  {inningsLabel && (
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] px-1.5 py-0 flex-shrink-0"
+                      data-testid={`innings-badge-${game.id}`}
+                    >
+                      {inningsLabel}
+                    </Badge>
+                  )}
+                  {game.is_conference_game && !fallBall && (
                     <Badge
                       variant="outline"
                       className="text-[10px] px-1.5 py-0 border-primary/30 text-primary flex-shrink-0"
@@ -275,7 +303,7 @@ function GameRow({
                     </>
                   )}
                 </div>
-                {game.tournament_name && (
+                {game.tournament_name && !fallBall && (
                   <div className="flex items-center gap-1 mt-1">
                     <Trophy className="w-3 h-3 text-muted-foreground flex-shrink-0" />
                     <span className="text-[10px] text-muted-foreground font-medium">
@@ -391,12 +419,14 @@ export default function SchedulePage() {
   const record = computeRecord(games);
   const { upcoming, resultPending, completed, other } = partitionGames(games);
   const remaining = upcoming.length;
+  const fallBallUpcoming = upcoming.some(isFallBallGame);
 
   return (
     <div className="space-y-4" data-testid="schedule-page">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold">Schedule</h1>
         <Badge variant="secondary" className="text-xs">
+          {fallBallUpcoming ? "2026 spring " : ""}
           {formatRecord(record)}
           {record.confWins + record.confLosses > 0
             ? ` · ${record.confWins}-${record.confLosses} B1G`

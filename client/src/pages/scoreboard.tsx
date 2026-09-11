@@ -77,10 +77,13 @@ function isIUGame(game: NCAAGame): boolean {
 // ---- Hook: fetch NCAA scoreboard for a date ----
 
 function formatDateForAPI(date: Date): string {
-  // NCAA API uses calendar year 2025 for current season
+  // NCAA API uses calendar year 2025 for the spring D1 season (Feb–June).
+  // Fall Ball exhibitions are not on this feed; Live nav is hidden for
+  // Fall Ball-only days so gameday does not land on an empty/stale board.
+  // Manual exhibition results belong on Schedule. update-scores only patches
+  // ESPN matches, which Fall exhibitions do not have.
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-  // Use 2025 for the season (college softball season spans Feb-June)
   return `2025/${month}/${day}`;
 }
 

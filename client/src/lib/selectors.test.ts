@@ -3,8 +3,10 @@ import type { Game } from "./supabase";
 import {
   completedResultLabel,
   computeRecord,
+  fallBallInningsLabel,
   getNextGame,
   getSeasonState,
+  isFallBallGame,
   partitionGames,
   shouldShowLiveNav,
 } from "./selectors";
@@ -31,6 +33,84 @@ function game(partial: Partial<Game> & Pick<Game, "id" | "date" | "status">): Ga
     ...partial,
   };
 }
+
+describe("isFallBallGame", () => {
+  it("matches tournament_name with flexible Fall Ball spacing/case", () => {
+    expect(
+      isFallBallGame(
+        game({
+          id: "fb",
+          date: "2026-09-13T17:00:00.000Z",
+          status: "upcoming",
+          tournament_name: "Fall Ball",
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isFallBallGame(
+        game({
+          id: "fb2",
+          date: "2026-09-13T17:00:00.000Z",
+          status: "upcoming",
+          tournament_name: "fall  ball",
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isFallBallGame(
+        game({
+          id: "ncaa",
+          date: "2026-05-16T18:00:00.000Z",
+          status: "completed",
+          tournament_name: "NCAA Regionals",
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isFallBallGame(
+        game({
+          id: "reg",
+          date: "2026-03-01T18:00:00.000Z",
+          status: "completed",
+        }),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("fallBallInningsLabel", () => {
+  it("reads an inning count from notes and does not invent one", () => {
+    expect(
+      fallBallInningsLabel(
+        game({
+          id: "n",
+          date: "2026-09-13T17:00:00.000Z",
+          status: "upcoming",
+          notes: "10-inning exhibition",
+        }),
+      ),
+    ).toBe("10 innings");
+    expect(
+      fallBallInningsLabel(
+        game({
+          id: "plain",
+          date: "2026-09-13T17:00:00.000Z",
+          status: "upcoming",
+          notes: "Free admission",
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      fallBallInningsLabel(
+        game({
+          id: "empty",
+          date: "2026-09-13T17:00:00.000Z",
+          status: "upcoming",
+        }),
+      ),
+    ).toBeNull();
+  });
+});
 
 describe("computeRecord", () => {
   it("counts real wins/losses and conference splits; ignores null scores", () => {
@@ -76,6 +156,41 @@ describe("computeRecord", () => {
     ];
     expect(computeRecord(games)).toEqual({
       wins: 2,
+      losses: 1,
+      confWins: 1,
+      confLosses: 1,
+    });
+  });
+
+  it("ignores completed Fall Ball exhibitions so spring W-L stays official", () => {
+    const games = [
+      game({
+        id: "spring-w",
+        date: "2026-03-01T18:00:00.000Z",
+        status: "completed",
+        iu_score: 5,
+        opponent_score: 2,
+        is_conference_game: true,
+      }),
+      game({
+        id: "spring-l",
+        date: "2026-03-02T18:00:00.000Z",
+        status: "completed",
+        iu_score: 1,
+        opponent_score: 3,
+        is_conference_game: true,
+      }),
+      game({
+        id: "fall-w",
+        date: "2026-09-13T17:00:00.000Z",
+        status: "completed",
+        iu_score: 8,
+        opponent_score: 1,
+        tournament_name: "Fall Ball",
+      }),
+    ];
+    expect(computeRecord(games)).toEqual({
+      wins: 1,
       losses: 1,
       confWins: 1,
       confLosses: 1,
@@ -209,6 +324,58 @@ describe("shouldShowLiveNav", () => {
     expect(
       shouldShowLiveNav(
         [game({ id: "1", date: "2026-04-10T18:00:00.000Z", status: "live" })],
+        now,
+      ),
+    ).toBe(true);
+  });
+
+  it("hides Live nav for Fall Ball-only upcoming or live days", () => {
+    const gameday = new Date("2026-09-13T16:00:00.000Z");
+    expect(
+      shouldShowLiveNav(
+        [
+          game({
+            id: "fb",
+            date: "2026-09-13T17:00:00.000Z",
+            status: "upcoming",
+            tournament_name: "Fall Ball",
+          }),
+        ],
+        gameday,
+      ),
+    ).toBe(false);
+    expect(
+      shouldShowLiveNav(
+        [
+          game({
+            id: "fb-live",
+            date: "2026-09-13T17:00:00.000Z",
+            status: "live",
+            tournament_name: "Fall Ball",
+          }),
+        ],
+        gameday,
+      ),
+    ).toBe(false);
+  });
+
+  it("still shows Live nav when a non-Fall Ball game is today", () => {
+    const now = new Date("2026-04-15T16:00:00.000Z");
+    expect(
+      shouldShowLiveNav(
+        [
+          game({
+            id: "fb",
+            date: "2026-09-13T17:00:00.000Z",
+            status: "upcoming",
+            tournament_name: "Fall Ball",
+          }),
+          game({
+            id: "spring",
+            date: "2026-04-15T23:00:00.000Z",
+            status: "upcoming",
+          }),
+        ],
         now,
       ),
     ).toBe(true);

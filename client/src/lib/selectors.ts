@@ -25,8 +25,23 @@ export type PartitionedGames = {
 const POSTSEASON_RE =
   /ncaa|regionals?|super\s*regionals?|wcws|world series|postseason/i;
 
+const FALL_BALL_RE = /fall\s*ball/i;
+const INNINGS_NOTE_RE = /(\d+)\s*-?\s*innings?/i;
+
 export function isPostseasonGame(game: Game): boolean {
   return Boolean(game.tournament_name && POSTSEASON_RE.test(game.tournament_name));
+}
+
+/** Official Fall Ball exhibitions, identified only by tournament_name. */
+export function isFallBallGame(game: Game): boolean {
+  return Boolean(game.tournament_name && FALL_BALL_RE.test(game.tournament_name));
+}
+
+/** e.g. "10 innings" when notes mention an inning count. Does not invent a default. */
+export function fallBallInningsLabel(game: Game): string | null {
+  if (!game.notes) return null;
+  const match = game.notes.match(INNINGS_NOTE_RE);
+  return match ? `${match[1]} innings` : null;
 }
 
 export function hasUsableScores(game: Game): boolean {
@@ -41,6 +56,7 @@ export function computeRecord(games: readonly Game[]): TeamRecord {
   let confLosses = 0;
 
   for (const g of games) {
+    if (isFallBallGame(g)) continue;
     if (g.status !== "completed" || !hasUsableScores(g)) continue;
     const iu = g.iu_score as number;
     const opp = g.opponent_score as number;
@@ -173,12 +189,17 @@ export function getSeasonState(
   return "in-season";
 }
 
-/** Show Live nav when a game is live or scheduled today (Indianapolis). */
+/**
+ * Show Live nav when a non-exhibition game is live or scheduled today
+ * (Indianapolis). Fall Ball-only days stay off the NCAA 2025 board — results
+ * belong on Schedule.
+ */
 export function shouldShowLiveNav(
   games: readonly Game[],
   now: Date = new Date(),
 ): boolean {
   return games.some((g) => {
+    if (isFallBallGame(g)) return false;
     if (g.status === "live") return true;
     if (g.status === "upcoming" && isSameCalendarDay(g.date, now)) return true;
     return false;
