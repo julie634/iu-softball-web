@@ -27,6 +27,7 @@ const POSTSEASON_RE =
 
 const FALL_BALL_RE = /fall\s*ball/i;
 const INNINGS_NOTE_RE = /(\d+)\s*-?\s*innings?/i;
+const DOUBLEHEADER_RE = /doubleheader|\bDH\b/i;
 
 export function isPostseasonGame(game: Game): boolean {
   return Boolean(game.tournament_name && POSTSEASON_RE.test(game.tournament_name));
@@ -42,6 +43,11 @@ export function fallBallInningsLabel(game: Game): string | null {
   if (!game.notes) return null;
   const match = game.notes.match(INNINGS_NOTE_RE);
   return match ? `${match[1]} innings` : null;
+}
+
+/** Doubleheader cue from tournament_name or notes. Does not invent a game-2 time. */
+export function isDoubleheaderGame(game: Game): boolean {
+  return DOUBLEHEADER_RE.test(`${game.tournament_name ?? ""} ${game.notes ?? ""}`);
 }
 
 export function hasUsableScores(game: Game): boolean {

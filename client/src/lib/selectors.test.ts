@@ -6,6 +6,7 @@ import {
   fallBallInningsLabel,
   getNextGame,
   getSeasonState,
+  isDoubleheaderGame,
   isFallBallGame,
   partitionGames,
   shouldShowLiveNav,
@@ -109,6 +110,43 @@ describe("fallBallInningsLabel", () => {
         }),
       ),
     ).toBeNull();
+  });
+});
+
+describe("isDoubleheaderGame", () => {
+  it("reads DH from notes or tournament_name and does not invent one", () => {
+    expect(
+      isDoubleheaderGame(
+        game({
+          id: "dh",
+          date: "2026-10-03T17:00:00.000Z",
+          status: "upcoming",
+          tournament_name: "Fall Ball",
+          notes: "Doubleheader. First pitch 1 p.m. EST per official IU release.",
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isDoubleheaderGame(
+        game({
+          id: "named",
+          date: "2026-10-03T17:00:00.000Z",
+          status: "upcoming",
+          tournament_name: "Fall Ball DH",
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isDoubleheaderGame(
+        game({
+          id: "single",
+          date: "2026-09-13T17:00:00.000Z",
+          status: "upcoming",
+          tournament_name: "Fall Ball",
+          notes: "10 innings. Free admission.",
+        }),
+      ),
+    ).toBe(false);
   });
 });
 

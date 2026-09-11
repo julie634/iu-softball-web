@@ -6,7 +6,7 @@ import WeatherBadge from "@/components/WeatherBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { format, differenceInDays, differenceInHours, differenceInMinutes } from "date-fns";
+import { differenceInDays, differenceInHours, differenceInMinutes } from "date-fns";
 import {
   Calendar,
   Clock,
@@ -17,13 +17,14 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import type { Game, Ranking } from "@/lib/supabase";
-import { formatGameDayBadge } from "@/lib/dates";
+import { formatGameDayBadge, formatInTeamTz } from "@/lib/dates";
 import {
   computeRecord,
   formatRecord,
   getLastCompletedGame,
   getNextGame,
   getSeasonState,
+  isDoubleheaderGame,
   isFallBallGame,
   type TeamRecord,
 } from "@/lib/selectors";
@@ -164,7 +165,11 @@ function SeasonRecapCard({
             )}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {format(new Date(last.date), "MMM d, yyyy")}
+            {formatInTeamTz(last.date, {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
           </p>
         </div>
       )}
@@ -209,6 +214,7 @@ function NextGameCard({
 
   const gameDate = new Date(nextGame.date);
   const fallBall = isFallBallGame(nextGame);
+  const doubleheader = isDoubleheaderGame(nextGame);
 
   // Look up opponent in rankings for their record
   const opponentRanking = rankings.find(
@@ -234,9 +240,18 @@ function NextGameCard({
               Fall Ball
             </Badge>
           )}
+          {doubleheader && (
+            <Badge
+              variant="secondary"
+              className="text-xs"
+              data-testid="next-game-dh-badge"
+            >
+              DH
+            </Badge>
+          )}
           <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
             <Clock className="w-3 h-3 mr-1" />
-            {formatGameDayBadge(gameDate)}
+            {formatGameDayBadge(nextGame.date)}
           </Badge>
         </div>
       </div>
@@ -341,7 +356,12 @@ function RecentNews({ articles }: { articles: any[] }) {
                 {article.published_date && (
                   <>
                     <span>·</span>
-                    <span>{format(new Date(article.published_date), "MMM d")}</span>
+                    <span>
+                      {formatInTeamTz(article.published_date, {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
                   </>
                 )}
               </div>

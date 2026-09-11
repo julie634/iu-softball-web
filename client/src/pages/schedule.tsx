@@ -10,12 +10,13 @@ import { ChevronDown, ChevronUp, ExternalLink, MapPin, Tv, Trophy, Clock } from 
 import { useState } from "react";
 import { track } from "@vercel/analytics";
 import type { Game, Ranking } from "@/lib/supabase";
-import { formatInTeamTz } from "@/lib/dates";
+import { formatInTeamTz, formatKickoffDateTime, formatKickoffTime } from "@/lib/dates";
 import {
   completedResultLabel,
   computeRecord,
   fallBallInningsLabel,
   formatRecord,
+  isDoubleheaderGame,
   isFallBallGame,
   partitionGames,
 } from "@/lib/selectors";
@@ -139,19 +140,7 @@ function GameDetail({
       {/* Game time */}
       <div className="flex items-center gap-2 text-muted-foreground">
         <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-        <span>
-          {formatInTeamTz(game.date, {
-            weekday: "long",
-            month: "short",
-            day: "numeric",
-          })}
-          {" · "}
-          {formatInTeamTz(game.date, {
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          })}
-        </span>
+        <span>{formatKickoffDateTime(game.date)}</span>
       </div>
 
       {/* Broadcast + stream link */}
@@ -203,6 +192,7 @@ function GameRow({
   const isLoss = result?.kind === "loss";
   const inningsLabel = fallBallInningsLabel(game);
   const fallBall = isFallBallGame(game);
+  const doubleheader = isDoubleheaderGame(game);
 
   return (
     <Card
@@ -267,6 +257,15 @@ function GameRow({
                       Fall Ball
                     </Badge>
                   )}
+                  {doubleheader && (
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] px-1.5 py-0 flex-shrink-0"
+                      data-testid={`dh-badge-${game.id}`}
+                    >
+                      DH
+                    </Badge>
+                  )}
                   {inningsLabel && (
                     <Badge
                       variant="secondary"
@@ -300,11 +299,7 @@ function GameRow({
                   ) : (
                     <>
                       <span className="whitespace-nowrap">
-                        {formatInTeamTz(game.date, {
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hour12: true,
-                        })}
+                        {formatKickoffTime(game.date)}
                       </span>
                       {game.venue && (
                         <>

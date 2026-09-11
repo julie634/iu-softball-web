@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   calendarDayKey,
   formatGameDayBadge,
+  formatInTeamTz,
+  formatKickoffDateTime,
+  formatKickoffTime,
   isBeforeToday,
   isOnOrAfterToday,
   isSameCalendarDay,
@@ -38,10 +41,22 @@ describe("calendarDayKey / Indianapolis", () => {
     expect(isBeforeToday(todayGame, now)).toBe(false);
   });
 
-  it("formatGameDayBadge shows Today with local time", () => {
+  it("formatGameDayBadge shows Today with Indianapolis time", () => {
     const now = new Date("2026-04-15T16:00:00.000Z");
     const game = "2026-04-15T22:00:00.000Z"; // 6:00 PM EDT
     const badge = formatGameDayBadge(game, now);
-    expect(badge.startsWith("Today ·")).toBe(true);
+    expect(badge).toBe("Today · 6:00 PM");
+  });
+
+  it("formats 17:00Z kickoffs as 1:00 PM Indianapolis, not the browser zone", () => {
+    const kickoff = "2026-09-13T17:00:00.000Z";
+    expect(formatKickoffTime(kickoff)).toBe("1:00 PM");
+    expect(formatKickoffDateTime(kickoff)).toBe("Sunday, Sep 13 · 1:00 PM");
+    expect(formatGameDayBadge(kickoff, new Date("2026-09-11T16:00:00.000Z"))).toBe(
+      "Sep 13 · 1:00 PM",
+    );
+    expect(
+      formatInTeamTz(kickoff, { hour: "numeric", minute: "2-digit", hour12: true }),
+    ).toBe("1:00 PM");
   });
 });
