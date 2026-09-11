@@ -6,11 +6,11 @@ import WeatherBadge from "@/components/WeatherBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
 import { ChevronDown, ChevronUp, ExternalLink, MapPin, Tv, Trophy, Clock } from "lucide-react";
 import { useState } from "react";
 import { track } from "@vercel/analytics";
 import type { Game, Ranking } from "@/lib/supabase";
+import { formatInTeamTz } from "@/lib/dates";
 import {
   completedResultLabel,
   computeRecord,
@@ -67,7 +67,6 @@ function GameDetail({
   rankings: Ranking[];
 }) {
   const isCompleted = game.status === "completed";
-  const gameDate = new Date(game.date);
 
   // Look up opponent record from rankings
   const opponentRanking = rankings.find(
@@ -140,7 +139,19 @@ function GameDetail({
       {/* Game time */}
       <div className="flex items-center gap-2 text-muted-foreground">
         <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-        <span>{format(gameDate, "EEEE, MMM d · h:mm a")}</span>
+        <span>
+          {formatInTeamTz(game.date, {
+            weekday: "long",
+            month: "short",
+            day: "numeric",
+          })}
+          {" · "}
+          {formatInTeamTz(game.date, {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          })}
+        </span>
       </div>
 
       {/* Broadcast + stream link */}
@@ -190,7 +201,6 @@ function GameRow({
   const result = isCompleted ? completedResultLabel(game) : null;
   const isWin = result?.kind === "win";
   const isLoss = result?.kind === "loss";
-  const gameDate = new Date(game.date);
   const inningsLabel = fallBallInningsLabel(game);
   const fallBall = isFallBallGame(game);
 
@@ -213,10 +223,10 @@ function GameRow({
           {/* Date block */}
           <div className="flex flex-col items-center w-10 sm:w-12 flex-shrink-0 pt-0.5">
             <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider">
-              {format(gameDate, "MMM")}
+              {formatInTeamTz(game.date, { month: "short" })}
             </span>
             <span className="text-lg font-bold tabular-nums leading-tight">
-              {format(gameDate, "d")}
+              {formatInTeamTz(game.date, { day: "numeric" })}
             </span>
           </div>
 
@@ -290,7 +300,11 @@ function GameRow({
                   ) : (
                     <>
                       <span className="whitespace-nowrap">
-                        {format(gameDate, "h:mm a")}
+                        {formatInTeamTz(game.date, {
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        })}
                       </span>
                       {game.venue && (
                         <>
