@@ -51,24 +51,51 @@ export function formatInTeamTz(
   options: Intl.DateTimeFormatOptions,
   timeZone: string = TEAM_TIMEZONE,
 ): string {
-  return new Intl.DateTimeFormat("en-US", { timeZone, ...options }).format(
+  // timeZone last so callers cannot accidentally fall back to the browser zone.
+  return new Intl.DateTimeFormat("en-US", { ...options, timeZone }).format(
     toDate(value),
   );
 }
 
-/** e.g. "Today · 6:00 PM" or "Mar 12" */
+/** First pitch in Indianapolis, e.g. "1:00 PM". Never uses the browser zone. */
+export function formatKickoffTime(
+  value: Date | string,
+  timeZone: string = TEAM_TIMEZONE,
+): string {
+  return formatInTeamTz(
+    value,
+    { hour: "numeric", minute: "2-digit", hour12: true },
+    timeZone,
+  );
+}
+
+/** e.g. "Sunday, Sep 13 · 1:00 PM" in Indianapolis. */
+export function formatKickoffDateTime(
+  value: Date | string,
+  timeZone: string = TEAM_TIMEZONE,
+): string {
+  const day = formatInTeamTz(
+    value,
+    { weekday: "long", month: "short", day: "numeric" },
+    timeZone,
+  );
+  return `${day} · ${formatKickoffTime(value, timeZone)}`;
+}
+
+/** e.g. "Today · 1:00 PM" or "Sep 13 · 1:00 PM" in Indianapolis. */
 export function formatGameDayBadge(
   gameDate: Date | string,
   now: Date | string = new Date(),
   timeZone: string = TEAM_TIMEZONE,
 ): string {
+  const time = formatKickoffTime(gameDate, timeZone);
   if (isSameCalendarDay(gameDate, now, timeZone)) {
-    const time = formatInTeamTz(gameDate, {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    }, timeZone);
     return `Today · ${time}`;
   }
-  return formatInTeamTz(gameDate, { month: "short", day: "numeric" }, timeZone);
+  const day = formatInTeamTz(
+    gameDate,
+    { month: "short", day: "numeric" },
+    timeZone,
+  );
+  return `${day} · ${time}`;
 }

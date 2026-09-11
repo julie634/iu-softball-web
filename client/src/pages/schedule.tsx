@@ -6,15 +6,18 @@ import WeatherBadge from "@/components/WeatherBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
 import { ChevronDown, ChevronUp, ExternalLink, MapPin, Tv, Trophy, Clock } from "lucide-react";
 import { useState } from "react";
 import { track } from "@vercel/analytics";
 import type { Game, Ranking } from "@/lib/supabase";
+import { formatInTeamTz, formatKickoffDateTime, formatKickoffTime } from "@/lib/dates";
 import {
   completedResultLabel,
   computeRecord,
+  fallBallInningsLabel,
   formatRecord,
+  isDoubleheaderGame,
+  isFallBallGame,
   partitionGames,
 } from "@/lib/selectors";
 
@@ -65,7 +68,6 @@ function GameDetail({
   rankings: Ranking[];
 }) {
   const isCompleted = game.status === "completed";
-  const gameDate = new Date(game.date);
 
   // Look up opponent record from rankings
   const opponentRanking = rankings.find(
@@ -138,7 +140,7 @@ function GameDetail({
       {/* Game time */}
       <div className="flex items-center gap-2 text-muted-foreground">
         <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-        <span>{format(gameDate, "EEEE, MMM d · h:mm a")}</span>
+        <span>{formatKickoffDateTime(game.date)}</span>
       </div>
 
       {/* Broadcast + stream link */}
@@ -163,6 +165,12 @@ function GameDetail({
           </a>
         )}
       </div>
+
+      {isFallBallGame(game) && game.notes && (
+        <div className="text-xs text-muted-foreground italic" data-testid={`fall-ball-notes-${game.id}`}>
+          {game.notes}
+        </div>
+      )}
     </div>
   );
 }
@@ -182,7 +190,9 @@ function GameRow({
   const result = isCompleted ? completedResultLabel(game) : null;
   const isWin = result?.kind === "win";
   const isLoss = result?.kind === "loss";
-  const gameDate = new Date(game.date);
+  const inningsLabel = fallBallInningsLabel(game);
+  const fallBall = isFallBallGame(game);
+  const doubleheader = isDoubleheaderGame(game);
 
   return (
     <Card
@@ -203,10 +213,10 @@ function GameRow({
           {/* Date block */}
           <div className="flex flex-col items-center w-10 sm:w-12 flex-shrink-0 pt-0.5">
             <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider">
-              {format(gameDate, "MMM")}
+              {formatInTeamTz(game.date, { month: "short" })}
             </span>
             <span className="text-lg font-bold tabular-nums leading-tight">
-              {format(gameDate, "d")}
+              {formatInTeamTz(game.date, { day: "numeric" })}
             </span>
           </div>
 
@@ -238,7 +248,34 @@ function GameRow({
                     {game.location === "away" ? "at " : "vs "}
                     {game.opponent}
                   </p>
-                  {game.is_conference_game && (
+                  {fallBall && (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] px-1.5 py-0 border-primary/30 text-primary flex-shrink-0"
+                      data-testid={`fall-ball-badge-${game.id}`}
+                    >
+                      Fall Ball
+                    </Badge>
+                  )}
+                  {doubleheader && (
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] px-1.5 py-0 flex-shrink-0"
+                      data-testid={`dh-badge-${game.id}`}
+                    >
+                      DH
+                    </Badge>
+                  )}
+                  {inningsLabel && (
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] px-1.5 py-0 flex-shrink-0"
+                      data-testid={`innings-badge-${game.id}`}
+                    >
+                      {inningsLabel}
+                    </Badge>
+                  )}
+                  {game.is_conference_game && !fallBall && (
                     <Badge
                       variant="outline"
                       className="text-[10px] px-1.5 py-0 border-primary/30 text-primary flex-shrink-0"
@@ -262,7 +299,7 @@ function GameRow({
                   ) : (
                     <>
                       <span className="whitespace-nowrap">
-                        {format(gameDate, "h:mm a")}
+                        {formatKickoffTime(game.date)}
                       </span>
                       {game.venue && (
                         <>
@@ -275,7 +312,7 @@ function GameRow({
                     </>
                   )}
                 </div>
-                {game.tournament_name && (
+                {game.tournament_name && !fallBall && (
                   <div className="flex items-center gap-1 mt-1">
                     <Trophy className="w-3 h-3 text-muted-foreground flex-shrink-0" />
                     <span className="text-[10px] text-muted-foreground font-medium">
@@ -391,12 +428,14 @@ export default function SchedulePage() {
   const record = computeRecord(games);
   const { upcoming, resultPending, completed, other } = partitionGames(games);
   const remaining = upcoming.length;
+  const fallBallUpcoming = upcoming.some(isFallBallGame);
 
   return (
     <div className="space-y-4" data-testid="schedule-page">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold">Schedule</h1>
         <Badge variant="secondary" className="text-xs">
+          {fallBallUpcoming ? "2026 spring " : ""}
           {formatRecord(record)}
           {record.confWins + record.confLosses > 0
             ? ` · ${record.confWins}-${record.confLosses} B1G`
